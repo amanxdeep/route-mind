@@ -1,0 +1,28 @@
+#application Information
+
+server:
+  port: 8088
+
+spring:
+  application:
+    name: RouteMind
+
+ # Database Configuration
+
+  datasource:
+    url: JDBC:mysql://localhost:3306/routemind_db
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver 
+   
+#JPA Configuration
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
