@@ -1,8 +1,8 @@
 package com.example.RouteMind.service;
 
-import com.example.RouteMind.Dto.Request.ServiceabilityRequest;
-import com.example.RouteMind.Dto.Response.DeliveryOptionDto;
-import com.example.RouteMind.Dto.Response.ServiceabilityResponse;
+import com.example.RouteMind.dto.Request.ServiceabilityRequest;
+import com.example.RouteMind.dto.Response.DeliveryOptionDto;
+import com.example.RouteMind.dto.Response.ServiceabilityResponse;
 import com.example.RouteMind.adapter.DeliveryProviderAdapter;
 import com.example.RouteMind.entity.Serviceability;
 import com.example.RouteMind.enums.ProviderTag;

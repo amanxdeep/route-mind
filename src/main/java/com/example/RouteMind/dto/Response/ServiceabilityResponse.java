@@ -1,9 +1,7 @@
-package com.example.RouteMind.Dto.Response;
+package com.example.RouteMind.dto.Response;
 
-import com.example.RouteMind.enums.ProviderCode;
-import com.example.RouteMind.enums.ProviderTag;
 import lombok.*;
-import java.math.BigDecimal;
+
 import java.util.List;
 /**
  * Response for serviceability check.

@@ -1,7 +1,7 @@
 package com.example.RouteMind.controller;
 
-import com.example.RouteMind.Dto.Response.GenericResponse;
-import com.example.RouteMind.Dto.Response.TrackingResponse;
+import com.example.RouteMind.dto.Response.GenericResponse;
+import com.example.RouteMind.dto.Response.TrackingResponse;
 import com.example.RouteMind.constants.ApiConstants;
 import com.example.RouteMind.service.TrackingService;
 import lombok.RequiredArgsConstructor;

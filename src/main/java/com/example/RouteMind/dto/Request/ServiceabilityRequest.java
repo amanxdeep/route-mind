@@ -1,4 +1,4 @@
-package com.example.RouteMind.Dto.Request;
+package com.example.RouteMind.dto.Request;
 
 import com.example.RouteMind.enums.PaymentMode;
 import lombok.*;

@@ -1,7 +1,7 @@
 package com.example.RouteMind.service;
 
-import com.example.RouteMind.Dto.Request.CreateOrderRequest;
-import com.example.RouteMind.Dto.Response.OrderResponse;
+import com.example.RouteMind.dto.Request.CreateOrderRequest;
+import com.example.RouteMind.dto.Response.OrderResponse;
 import com.example.RouteMind.adapter.DeliveryProviderAdapter;
 import com.example.RouteMind.entity.Order;
 import com.example.RouteMind.entity.Shipment;

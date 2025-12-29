@@ -1,8 +1,8 @@
 package com.example.RouteMind.controller;
 
-import com.example.RouteMind.Dto.Request.CreateOrderRequest;
-import com.example.RouteMind.Dto.Response.GenericResponse;
-import com.example.RouteMind.Dto.Response.OrderResponse;
+import com.example.RouteMind.dto.Request.CreateOrderRequest;
+import com.example.RouteMind.dto.Response.GenericResponse;
+import com.example.RouteMind.dto.Response.OrderResponse;
 import com.example.RouteMind.constants.ApiConstants;
 import com.example.RouteMind.entity.Order;
 import com.example.RouteMind.service.OrderService;

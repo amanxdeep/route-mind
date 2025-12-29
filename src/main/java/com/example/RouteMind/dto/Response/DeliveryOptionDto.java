@@ -1,4 +1,4 @@
-package com.example.RouteMind.Dto.Response;
+package com.example.RouteMind.dto.Response;
 
 import com.example.RouteMind.enums.*;
 import lombok.*;

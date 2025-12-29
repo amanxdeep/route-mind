@@ -1,4 +1,4 @@
-package com.example.RouteMind.Dto.Response;
+package com.example.RouteMind.dto.Response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
