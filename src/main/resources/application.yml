@@ -2,6 +2,8 @@
 
 server:
   port: 8088
+  servlet:
+    context-path: /route-mind
 
 spring:
   application:
