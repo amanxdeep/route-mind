@@ -7,7 +7,7 @@ import com.example.RouteMind.entity.Order;
 import com.example.RouteMind.entity.Shipment;
 import com.example.RouteMind.enums.DeliveryStatus;
 import com.example.RouteMind.enums.ProviderCode;
-import com.example.RouteMind.factoryPattern.ProviderFactory;
+import com.example.RouteMind.factory.ProviderFactory;
 import com.example.RouteMind.repository.OrderRepository;
 import com.example.RouteMind.repository.ShipmentRepository;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.example.RouteMind.factoryPattern;
+package com.example.RouteMind.factory;
 
 import com.example.RouteMind.adapter.DeliveryProviderAdapter;
 import com.example.RouteMind.enums.ProviderCode;

@@ -1,4 +1,4 @@
-package com.example.RouteMind.exceptionHandling;
+package com.example.RouteMind.exception;
 
 import com.example.RouteMind.enums.ProviderCode;
 /**

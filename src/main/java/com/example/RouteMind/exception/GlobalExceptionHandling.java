@@ -1,6 +1,5 @@
-package com.example.RouteMind.exceptionHandling;
+package com.example.RouteMind.exception;
 
-import com.example.RouteMind.Dto.Response.GenericError;
 import com.example.RouteMind.Dto.Response.GenericResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

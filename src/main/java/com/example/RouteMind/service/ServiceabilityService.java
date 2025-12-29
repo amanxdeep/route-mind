@@ -6,7 +6,7 @@ import com.example.RouteMind.Dto.Response.ServiceabilityResponse;
 import com.example.RouteMind.adapter.DeliveryProviderAdapter;
 import com.example.RouteMind.entity.Serviceability;
 import com.example.RouteMind.enums.ProviderTag;
-import com.example.RouteMind.factoryPattern.ProviderFactory;
+import com.example.RouteMind.factory.ProviderFactory;
 import com.example.RouteMind.repository.RateCardRepository;
 import com.example.RouteMind.repository.ServiceabilityRepository;
 import lombok.RequiredArgsConstructor;

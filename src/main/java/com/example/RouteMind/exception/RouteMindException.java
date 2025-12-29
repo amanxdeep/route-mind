@@ -1,4 +1,4 @@
-package com.example.RouteMind.exceptionHandling;
+package com.example.RouteMind.exception;
 
 /**
  * Base exception for all RouteMind errors.

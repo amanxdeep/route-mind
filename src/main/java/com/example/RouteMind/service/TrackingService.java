@@ -5,7 +5,7 @@ import com.example.RouteMind.Dto.Response.TrackingResponse;
 import com.example.RouteMind.adapter.DeliveryProviderAdapter;
 import com.example.RouteMind.entity.Shipment;
 import com.example.RouteMind.entity.TrackingEvent;
-import com.example.RouteMind.factoryPattern.ProviderFactory;
+import com.example.RouteMind.factory.ProviderFactory;
 import com.example.RouteMind.repository.ShipmentRepository;
 import com.example.RouteMind.repository.TrackingEventRepository;
 import lombok.RequiredArgsConstructor;
