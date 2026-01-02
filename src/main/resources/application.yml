@@ -28,3 +28,14 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
+
+# FedEx API Configuration
+fedex:
+  baseUrl: https://apis-sandbox.fedex.com  # Change to production URL when ready
+  apiKey: your-fedex-api-key
+  accountNumber: your-account-number
+  password: your-password
+  meterNumber: your-meter-number
+  clientId: your-client-id
+  clientSecret: your-client-secret
+  enableLogging: true

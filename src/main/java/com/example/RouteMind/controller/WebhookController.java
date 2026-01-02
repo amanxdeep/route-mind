@@ -50,9 +50,8 @@ public class WebhookController {
      * Receive status update from Delhivery.
      */
     @PostMapping("/fedex")
-    public ResponseEntity<GenericResponse<String>> delhiveryWebhook(
+    public ResponseEntity<GenericResponse<String>> fedexWebhook(
             @RequestBody Map<String, Object> payload) {
-
         log.info("FedEx webhook received: {}", payload);
 
         String trackingId = (String) payload.get("waybill");
@@ -126,6 +125,10 @@ public class WebhookController {
      */
     private DeliveryStatus mapStatus(String partnerCode) {
         // Common mappings
+        if (partnerCode == null) {
+            log.warn("Received null partner code, defaulting to IN_TRANSIT");
+            return DeliveryStatus.IN_TRANSIT;
+        }
         return switch (partnerCode.toUpperCase()) {
             case "PKD", "PICKED", "PICKUP_DONE" -> DeliveryStatus.PICKED_UP;
             case "ITR", "INTRANSIT", "IN_TRANSIT" -> DeliveryStatus.IN_TRANSIT;
