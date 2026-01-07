@@ -1,7 +1,7 @@
 #application Information
 
 server:
-  port: 8088
+  port: 8080
   servlet:
     context-path: /route-mind
 
