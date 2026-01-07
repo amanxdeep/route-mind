@@ -39,7 +39,7 @@ public class ClientConfiguration {
             builder.addInterceptor(loggingInterceptor);
         }
 
-        // TODO: Add authentication interceptor here when you have FedEx auth details
+
         // builder.addInterceptor(new FedexAuthInterceptor(fedexProperties));
 
         return builder.build();
