@@ -6,7 +6,6 @@ import com.example.RouteMind.constants.ApiConstants;
 import com.example.RouteMind.service.TrackingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 /**
  * REST API for tracking shipments.
@@ -25,14 +24,14 @@ public class TrackingController {
      * GET /api/v1/tracking/{trackingId}
      * Track shipment by tracking ID.
      */
-    @GetMapping("/{trackingId}")
-    public ResponseEntity<GenericResponse<TrackingResponse>> trackShipment(
+    @GetMapping(ApiConstants.TRACKING_ID)
+    public GenericResponse<TrackingResponse> trackShipment(
             @PathVariable String trackingId) {
 
         log.info("Tracking request: {}", trackingId);
 
         TrackingResponse response = trackingService.trackShipment(trackingId);
 
-        return ResponseEntity.ok(GenericResponse.success(response));
+        return GenericResponse.success(response);
     }
 }

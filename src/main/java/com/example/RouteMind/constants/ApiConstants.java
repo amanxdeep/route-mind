@@ -19,4 +19,16 @@ public class ApiConstants {
     public static final String WEBHOOKS = "/webhooks";
 
     public static final String BY_TRACKING_ID = "/tracking/{trackingId}";
+
+    // order-specific paths
+    public static final String ORDER_ID = "/{id}";
+    public static final String EXTERNAL_ORDER_ID = "/external/{externalOrderId}";
+
+    // tracking paths
+    public static final String TRACKING_ID = "/{trackingId}";
+
+    // webhook subpaths
+    public static final String WEBHOOK_BLUEDART = "/bluedart";
+    public static final String WEBHOOK_FEDEX = "/fedex";
+    public static final String WEBHOOK_DTDC = "/dtdc";
 }

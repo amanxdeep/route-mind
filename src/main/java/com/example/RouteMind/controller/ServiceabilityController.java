@@ -7,7 +7,6 @@ import com.example.RouteMind.constants.ApiConstants;
 import com.example.RouteMind.service.ServiceabilityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 /**
  * REST API for checking delivery serviceability.
@@ -25,7 +24,7 @@ public class ServiceabilityController {
      * Check if delivery is possible and get available options.
      */
     @PostMapping
-    public ResponseEntity<GenericResponse<ServiceabilityResponse>> checkServiceability(
+    public GenericResponse<ServiceabilityResponse> checkServiceability(
             @RequestBody ServiceabilityRequest request) {
 
         log.info("Serviceability check: {} -> {}",
@@ -33,6 +32,6 @@ public class ServiceabilityController {
 
         ServiceabilityResponse response = serviceabilityService.checkServiceability(request);
 
-        return ResponseEntity.ok(GenericResponse.success(response));
+        return GenericResponse.success(response);
     }
 }

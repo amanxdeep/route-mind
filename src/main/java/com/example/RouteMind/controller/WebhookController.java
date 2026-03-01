@@ -9,7 +9,6 @@ import com.example.RouteMind.repository.ShipmentRepository;
 import com.example.RouteMind.repository.TrackingEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -28,8 +27,8 @@ public class WebhookController {
      * POST /api/v1/webhooks/bluedart
      * Receive status update from BlueDart.
      */
-    @PostMapping("/bluedart")
-    public ResponseEntity<GenericResponse<String>> bluedartWebhook(
+    @PostMapping(ApiConstants.WEBHOOK_BLUEDART)
+    public GenericResponse<String> bluedartWebhook(
             @RequestBody Map<String, Object> payload) {
 
         log.info("BlueDart webhook received: {}", payload);
@@ -43,14 +42,14 @@ public class WebhookController {
         // Process update
         processStatusUpdate(trackingId, statusCode, location, description);
 
-        return ResponseEntity.ok(GenericResponse.success("OK"));
+        return GenericResponse.success("OK");
     }
     /**
      * POST /api/v1/webhooks/delhivery
      * Receive status update from Delhivery.
      */
-    @PostMapping("/fedex")
-    public ResponseEntity<GenericResponse<String>> fedexWebhook(
+    @PostMapping(ApiConstants.WEBHOOK_FEDEX)
+    public GenericResponse<String> fedexWebhook(
             @RequestBody Map<String, Object> payload) {
         log.info("FedEx webhook received: {}", payload);
 
@@ -61,14 +60,14 @@ public class WebhookController {
 
         processStatusUpdate(trackingId, statusCode, location, description);
 
-        return ResponseEntity.ok(GenericResponse.success("OK"));
+        return GenericResponse.success("OK");
     }
     /**
      * POST /api/v1/webhooks/dtdc
      * Receive status update from DTDC.
      */
-    @PostMapping("/dtdc")
-    public ResponseEntity<GenericResponse<String>> dtdcWebhook(
+    @PostMapping(ApiConstants.WEBHOOK_DTDC)
+    public GenericResponse<String> dtdcWebhook(
             @RequestBody Map<String, Object> payload) {
 
         log.info("DTDC webhook received: {}", payload);
@@ -80,7 +79,7 @@ public class WebhookController {
 
         processStatusUpdate(trackingId, statusCode, location, description);
 
-        return ResponseEntity.ok(GenericResponse.success("OK"));
+        return GenericResponse.success("OK");
     }
     /**
      * Process status update from any provider.

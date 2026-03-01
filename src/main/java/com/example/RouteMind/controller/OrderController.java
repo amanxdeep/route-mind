@@ -8,8 +8,6 @@ import com.example.RouteMind.entity.Order;
 import com.example.RouteMind.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 /**
@@ -30,44 +28,38 @@ public class OrderController {
      * Create a new order.
      */
     @PostMapping
-    public ResponseEntity<GenericResponse<OrderResponse>> createOrder(
+    public GenericResponse<OrderResponse> createOrder(
             @RequestBody CreateOrderRequest request) {
 
         log.info("Creating order: {}", request.getExternalOrderId());
 
         OrderResponse response = orderService.createOrder(request);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(GenericResponse.success(response));
+        return GenericResponse.success(response);
     }
 
     /**
      * GET /api/v1/orders/{id}
      * Get order by ID.
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<GenericResponse<Order>> getOrderById(@PathVariable UUID id) {
+    @GetMapping(ApiConstants.ORDER_ID)
+    public GenericResponse<Order> getOrderById(@PathVariable UUID id) {
 
         return orderService.getOrderById(id)
-                .map(order -> ResponseEntity.ok(GenericResponse.success(order)))
-                .orElse(ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .body(GenericResponse.failure("NOT_FOUND", "Order not found")));
+                .map(GenericResponse::success)
+                .orElse(GenericResponse.failure("NOT_FOUND", "Order not found"));
     }
 
     /**
      * GET /api/v1/orders/external/{externalOrderId}
      * Get order by external ID (web app's order ID).
      */
-    @GetMapping("/external/{externalOrderId}")
-    public ResponseEntity<GenericResponse<Order>> getOrderByExternalId(
+    @GetMapping(ApiConstants.EXTERNAL_ORDER_ID)
+    public GenericResponse<Order> getOrderByExternalId(
             @PathVariable String externalOrderId) {
 
         return orderService.getOrderByExternalId(externalOrderId)
-                .map(order -> ResponseEntity.ok(GenericResponse.success(order)))
-                .orElse(ResponseEntity
-                        .status(HttpStatus.NOT_FOUND)
-                        .body(GenericResponse.failure("NOT_FOUND", "Order not found")));
+                .map(GenericResponse::success)
+                .orElse(GenericResponse.failure("NOT_FOUND", "Order not found"));
     }
 }
