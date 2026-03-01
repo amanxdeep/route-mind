@@ -10,6 +10,7 @@ import java.util.List;
  * Shows current status + full journey history.
  */
 @Data
+@Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

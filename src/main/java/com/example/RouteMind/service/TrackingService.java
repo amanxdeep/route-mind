@@ -48,7 +48,7 @@ public class TrackingService {
         TrackingResponse response = adapter.trackShipment(trackingId);
 
         // Ensure events list is not null
-        if (response.getEvents() == null) {
+        if (ObjectUtils.isEmpty(response.getEvents())) {
             response.setEvents(new ArrayList<>());
         }
 
@@ -68,15 +68,17 @@ public class TrackingService {
         List<TrackingEventDto> allEvents = mergeEvents(response.getEvents(), dbEvents);
 
         // Step 6: Set merged events and external order ID
-        response.setEvents(allEvents);
-        response.setExternalOrderId(shipment.getOrder().getExternalOrderId());
+        response.setEvents(allEvents)
+            .setExternalOrderId(shipment.getOrder().getExternalOrderId());
 
         // Step 7: Update shipment status if changed
         if (response.getCurrentStatus() != null &&
                 !response.getCurrentStatus().equals(shipment.getCurrentStatus())) {
-            shipment.setCurrentStatus(response.getCurrentStatus());
-            shipment.setCurrentLocation(response.getCurrentLocation());
-            if (response.getEstimatedDeliveryDate() != null) {
+
+            shipment.setCurrentStatus(response.getCurrentStatus())
+                .setCurrentLocation(response.getCurrentLocation());
+
+            if (ObjectUtils.isNotEmpty(response.getEstimatedDeliveryDate())) {
                 shipment.setEstimatedDeliveryDate(response.getEstimatedDeliveryDate());
             }
             shipmentRepository.save(shipment);
@@ -105,7 +107,7 @@ public class TrackingService {
      * @return Number of new events saved
      */
     private int saveNewEventsFromApi(Shipment shipment, List<TrackingEventDto> apiEvents) {
-        if (apiEvents == null || apiEvents.isEmpty()) {
+        if (CollectionUtils.isEmpty(apiEvents)) {
             return 0;
         }
 
@@ -183,7 +185,7 @@ public class TrackingService {
                 .collect(Collectors.toSet());
 
         // Add API events that don't exist in DB (by timestamp and status)
-        if (apiEvents != null && !apiEvents.isEmpty()) {
+        if (CollectionUtils.isNotEmpty(apiEvents)) {
             for (TrackingEventDto apiEvent : apiEvents) {
                 LocalDateTime eventTime = apiEvent.getTimestamp() != null
                         ? apiEvent.getTimestamp()
