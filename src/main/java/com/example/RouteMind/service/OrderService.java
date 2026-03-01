@@ -14,18 +14,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.RouteMind.exception.ProviderException;
 import java.util.Optional;
 import java.util.UUID;
 
-@Service                    // Marks this as a Spring service (business logic layer)
-@RequiredArgsConstructor    // Lombok: generates constructor for final fields
-@Slf4j                      // Lombok: creates logger as 'log'
+@Service
+@RequiredArgsConstructor
+@Slf4j
 public class OrderService {
-    private final OrderRepository orderRepository;       // Database access for orders
-    private final ShipmentRepository shipmentRepository; // Database access for shipments
-    private final ProviderFactory providerFactory;       // Get adapter by provider code
+    private final OrderRepository orderRepository;
+    private final ShipmentRepository shipmentRepository;
+    private final ProviderFactory providerFactory;
 
-    @Transactional  // If anything fails, rollback ALL database changes
     public OrderResponse createOrder(CreateOrderRequest request) {
         log.info("Creating order: {}", request.getExternalOrderId());
 
@@ -33,33 +33,62 @@ public class OrderService {
         if (orderRepository.existsByExternalOrderId(request.getExternalOrderId())) {
             throw new RuntimeException("Order already exists: " + request.getExternalOrderId());
         }
-        // 2. Save order to database
-        Order order = mapToOrder(request);   // Convert DTO → Entity
-        order = orderRepository.save(order); // Save & get ID
+        // 2. Save order to database (quick, isolated transaction)
+        Order order = mapToOrder(request);
+        order = saveOrderTransactional(order);
 
         // 3. Select provider (use preferred or default to BLUEDART)
         ProviderCode providerCode = request.getPreferredProvider() != null
-                ? request.getPreferredProvider()  // Customer chose specific provider
-                : ProviderCode.BLUEDART;          // Default if not specified
+                ? request.getPreferredProvider()
+                : ProviderCode.BLUEDART;
 
-        // 4. Create shipment with provider
-        DeliveryProviderAdapter adapter = providerFactory.getAdapter(providerCode);
-        OrderResponse response = adapter.createShipment(request);
+        // 4. Call external provider (do NOT hold DB transaction during this call)
+        try {
+            DeliveryProviderAdapter adapter = providerFactory.getAdapter(providerCode);
+            OrderResponse response = adapter.createShipment(request);
 
-        // 5. Save shipment to database
-        Shipment shipment = Shipment.builder()
-                .order(order)                              // Link to parent order
-                .trackingId(response.getTrackingId())      // From provider
-                .providerCode(providerCode)                // Which provider
-                .serviceType(request.getServiceType())     // EXPRESS/STANDARD/etc
-                .currentStatus(DeliveryStatus.ORDER_CONFIRMED)
-                .build();
+            // 5. Persist shipment and update order status in a short transaction
+            Shipment shipment = Shipment.builder()
+                    .trackingId(response.getTrackingId())
+                    .providerCode(providerCode)
+                    .serviceType(request.getServiceType())
+                    .currentStatus(DeliveryStatus.ORDER_CONFIRMED)
+                    .build();
+
+            saveShipmentAndMarkOrder(order.getId(), shipment);
+
+            // 6. Return response
+            response.setOrderId(order.getId());
+            response.setExternalOrderId(order.getExternalOrderId());
+            return response;
+        } catch (Exception ex) {
+            log.error("Failed to create shipment for order {}: {}", request.getExternalOrderId(), ex.getMessage());
+            markOrderFailed(order.getId(), ex.getMessage());
+            throw new ProviderException(providerCode, ex.getMessage());
+        }
+    }
+
+    @Transactional
+    private Order saveOrderTransactional(Order order) {
+        return orderRepository.save(order);
+    }
+
+    @Transactional
+    private void saveShipmentAndMarkOrder(UUID orderId, Shipment shipment) {
+        Order managed = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+        shipment.setOrder(managed);
         shipmentRepository.save(shipment);
+        managed.setStatus(DeliveryStatus.ORDER_CONFIRMED);
+        orderRepository.save(managed);
+    }
 
-        // 6. Return response
-        response.setOrderId(order.getId());
-        response.setExternalOrderId(order.getExternalOrderId());
-        return response;
+    @Transactional
+    private void markOrderFailed(UUID orderId, String reason) {
+        orderRepository.findById(orderId).ifPresent(o -> {
+            o.setStatus(DeliveryStatus.DELIVERY_FAILED);
+            orderRepository.save(o);
+        });
     }
 
     /**
