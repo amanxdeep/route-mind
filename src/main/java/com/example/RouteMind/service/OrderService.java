@@ -15,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.RouteMind.exception.ProviderException;
+import org.springframework.util.ObjectUtils;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,9 +40,7 @@ public class OrderService {
         order = saveOrderTransactional(order);
 
         // 3. Select provider (use preferred or default to BLUEDART)
-        ProviderCode providerCode = request.getPreferredProvider() != null
-                ? request.getPreferredProvider()
-                : ProviderCode.BLUEDART;
+        ProviderCode providerCode = getProviderCode(request);
 
         // 4. Call external provider (do NOT hold DB transaction during this call)
         try {
@@ -58,14 +58,20 @@ public class OrderService {
             saveShipmentAndMarkOrder(order.getId(), shipment);
 
             // 6. Return response
-            response.setOrderId(order.getId());
-            response.setExternalOrderId(order.getExternalOrderId());
+            response.setOrderId(order.getId())
+                    .setExternalOrderId(order.getExternalOrderId());
             return response;
         } catch (Exception ex) {
             log.error("Failed to create shipment for order {}: {}", request.getExternalOrderId(), ex.getMessage());
             markOrderFailed(order.getId(), ex.getMessage());
             throw new ProviderException(providerCode, ex.getMessage());
         }
+    }
+
+    private ProviderCode getProviderCode(CreateOrderRequest request) {
+        if (ObjectUtils.isEmpty(request.getPreferredProvider()))
+            return ProviderCode.BLUEDART;
+        return request.getPreferredProvider();
     }
 
     @Transactional
