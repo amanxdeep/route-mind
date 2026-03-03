@@ -12,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.ObjectUtils;
+
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -78,7 +81,7 @@ public class TrackingService {
             shipment.setCurrentStatus(response.getCurrentStatus())
                 .setCurrentLocation(response.getCurrentLocation());
 
-            if (ObjectUtils.isNotEmpty(response.getEstimatedDeliveryDate())) {
+            if (!ObjectUtils.isEmpty(response.getEstimatedDeliveryDate())) {
                 shipment.setEstimatedDeliveryDate(response.getEstimatedDeliveryDate());
             }
             shipmentRepository.save(shipment);
@@ -185,7 +188,7 @@ public class TrackingService {
                 .collect(Collectors.toSet());
 
         // Add API events that don't exist in DB (by timestamp and status)
-        if (CollectionUtils.isNotEmpty(apiEvents)) {
+        if (!CollectionUtils.isEmpty(apiEvents)) {
             for (TrackingEventDto apiEvent : apiEvents) {
                 LocalDateTime eventTime = apiEvent.getTimestamp() != null
                         ? apiEvent.getTimestamp()
