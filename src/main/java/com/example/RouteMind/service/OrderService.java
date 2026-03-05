@@ -102,23 +102,17 @@ public class OrderService {
         });
     }
 
-    /**
-     * Get order by ID.
-     */
+
     public Optional<Order> getOrderById(UUID id) {
         return orderRepository.findById(id);
     }
 
-    /**
-     * Get order by external ID.
-     */
+
     public Optional<Order> getOrderByExternalId(String externalOrderId) {
         return orderRepository.findByExternalOrderId(externalOrderId);
     }
 
-    /**
-     * Map request DTO to Order entity.
-     */
+
     private Order mapToOrder(CreateOrderRequest request) {
         return Order.builder()
                 .externalOrderId(request.getExternalOrderId())
