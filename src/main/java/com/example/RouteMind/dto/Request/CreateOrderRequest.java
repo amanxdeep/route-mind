@@ -38,7 +38,7 @@ public class CreateOrderRequest {
     private PaymentMode paymentMode;
 
     // Amount to collect if COD
-    private BigDecimal codAmount;
+    private BigDecimal orderValue;
 
     // Optional: specific provider (null = auto-select)
     private ProviderCode preferredProvider;

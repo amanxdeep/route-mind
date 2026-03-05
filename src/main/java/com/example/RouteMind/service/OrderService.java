@@ -29,53 +29,57 @@ public class OrderService {
     private final ProviderFactory providerFactory;
 
     public OrderResponse createOrder(CreateOrderRequest request) {
-        log.info("Creating order: {}", request.getExternalOrderId());
+        log.info("Creating order request: {}", request);
 
-        // 1. Check if order already exists
-        if (orderRepository.existsByExternalOrderId(request.getExternalOrderId())) {
-            throw new RuntimeException("Order already exists: " + request.getExternalOrderId());
-        }
-        // 2. Save order to database (quick, isolated transaction)
+        validateOrderRequest(request);
+
         Order order = mapToOrder(request);
-        order = saveOrderTransactional(order);
+        Order orderEntity = saveOrder(order);
 
-        // 3. Select provider (use preferred or default to BLUEDART)
         ProviderCode providerCode = getProviderCode(request);
 
-        // 4. Call external provider (do NOT hold DB transaction during this call)
         try {
             DeliveryProviderAdapter adapter = providerFactory.getAdapter(providerCode);
             OrderResponse response = adapter.createShipment(request);
 
-            // 5. Persist shipment and update order status in a short transaction
-            Shipment shipment = Shipment.builder()
-                    .trackingId(response.getTrackingId())
-                    .providerCode(providerCode)
-                    .serviceType(request.getServiceType())
-                    .currentStatus(DeliveryStatus.ORDER_CONFIRMED)
-                    .build();
+            Shipment shipment = getShipment(request, response, providerCode);
 
-            saveShipmentAndMarkOrder(order.getId(), shipment);
+            saveShipmentAndMarkOrder(orderEntity.getId(), shipment);
 
-            // 6. Return response
-            response.setOrderId(order.getId())
-                    .setExternalOrderId(order.getExternalOrderId());
+            response.setOrderId(orderEntity.getId())
+                    .setExternalOrderId(orderEntity.getExternalOrderId());
+
             return response;
         } catch (Exception ex) {
-            log.error("Failed to create shipment for order {}: {}", request.getExternalOrderId(), ex.getMessage());
-            markOrderFailed(order.getId(), ex.getMessage());
+            log.error("Failed to create shipment for order {}", request.getExternalOrderId(), ex);
+            markOrderFailed(orderEntity.getId(), ex.getMessage());
             throw new ProviderException(providerCode, ex.getMessage());
+        }
+    }
+
+    private static Shipment getShipment(CreateOrderRequest request, OrderResponse response, ProviderCode providerCode) {
+        return Shipment.builder()
+                .trackingId(response.getTrackingId())
+                .providerCode(providerCode)
+                .serviceType(request.getServiceType())
+                .currentStatus(DeliveryStatus.ORDER_CONFIRMED)
+                .build();
+    }
+
+    private void validateOrderRequest(CreateOrderRequest request) {
+        if (orderRepository.existsByExternalOrderId(request.getExternalOrderId())) {
+            throw new RuntimeException("Order already exists: " + request.getExternalOrderId());
         }
     }
 
     private ProviderCode getProviderCode(CreateOrderRequest request) {
         if (ObjectUtils.isEmpty(request.getPreferredProvider()))
             return ProviderCode.BLUEDART;
+
         return request.getPreferredProvider();
     }
 
-    @Transactional
-    private Order saveOrderTransactional(Order order) {
+    private Order saveOrder(Order order) {
         return orderRepository.save(order);
     }
 
@@ -83,6 +87,7 @@ public class OrderService {
     private void saveShipmentAndMarkOrder(UUID orderId, Shipment shipment) {
         Order managed = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+
         shipment.setOrder(managed);
         shipmentRepository.save(shipment);
         managed.setStatus(DeliveryStatus.ORDER_CONFIRMED);
@@ -131,7 +136,7 @@ public class OrderService {
                 .deliveryState(request.getDeliveryAddress().getState())
                 .deliveryPinCode(request.getDeliveryAddress().getPincode())
                 .paymentMode(request.getPaymentMode())
-                .codValue(request.getCodAmount())
+                .codValue(request.getOrderValue())
                 .build();
     }
 
