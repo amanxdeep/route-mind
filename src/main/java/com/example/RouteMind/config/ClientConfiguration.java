@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Client configuration for FedEx API client.
+ * Configures Retrofit with OkHttpClient, timeouts, and request/response logging.
  */
 @Configuration
 @RequiredArgsConstructor
@@ -24,6 +25,7 @@ public class ClientConfiguration {
 
     /**
      * Creates and configures OkHttpClient with logging interceptor.
+     * Logs complete request/response body in JSON format.
      */
     @Bean
     public OkHttpClient okHttpClient() {
@@ -34,22 +36,28 @@ public class ClientConfiguration {
 
         // Add logging interceptor if enabled
         if (fedexProperties.isEnableLogging()) {
-            HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(log::info);
+            HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(message -> {
+                if (message != null && !message.isEmpty()) {
+                    // Log complete serialized JSON request/response body
+                    log.info("FedEx API: {}", message);
+                }
+            });
+            // Set to BODY level to log complete request/response with headers and body
             loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
             builder.addInterceptor(loggingInterceptor);
+            log.info("FedEx API logging enabled at BODY level (complete JSON request/response)");
         }
-
-
-        // builder.addInterceptor(new FedexAuthInterceptor(fedexProperties));
 
         return builder.build();
     }
 
     /**
      * Creates Retrofit instance for FedEx API.
+     * Configures base URL and JSON converter.
      */
     @Bean
     public Retrofit fedexRetrofit(OkHttpClient okHttpClient) {
+        log.info("Initializing FedEx Retrofit client with base URL: {}", fedexProperties.getBaseUrl());
         return new Retrofit.Builder()
                 .baseUrl(fedexProperties.getBaseUrl())
                 .client(okHttpClient)
@@ -59,9 +67,11 @@ public class ClientConfiguration {
 
     /**
      * Creates FedEx API client bean.
+     * Used for making API calls to FedEx endpoints.
      */
     @Bean
     public FedexApiClient fedexApiClient(Retrofit fedexRetrofit) {
+        log.info("Creating FedEx API client bean");
         return fedexRetrofit.create(FedexApiClient.class);
     }
 }

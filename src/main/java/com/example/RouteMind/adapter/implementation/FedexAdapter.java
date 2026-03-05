@@ -5,6 +5,8 @@ import com.example.RouteMind.client.fedex.FedexApiClient;
 import com.example.RouteMind.client.fedex.dto.FedexOAuthResponse;
 import com.example.RouteMind.client.fedex.dto.serviceability.FedexRateRequest;
 import com.example.RouteMind.client.fedex.dto.serviceability.FedexRateResponse;
+import com.example.RouteMind.client.fedex.dto.shipment.FedexShipmentRequest;
+import com.example.RouteMind.client.fedex.dto.shipment.FedexShipmentResponse;
 import com.example.RouteMind.client.fedex.dto.tracking.FedexTrackingRequest;
 import com.example.RouteMind.client.fedex.dto.tracking.FedexTrackingResponse;
 import com.example.RouteMind.config.FedexProperties;
@@ -14,6 +16,8 @@ import com.example.RouteMind.dto.Response.TrackingResponse;
 import com.example.RouteMind.dto.Response.TrackingEventDto;
 import com.example.RouteMind.enums.DeliveryStatus;
 import com.example.RouteMind.enums.ProviderCode;
+import com.example.RouteMind.enums.ServiceType;
+import com.example.RouteMind.enums.PaymentMode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -103,17 +107,247 @@ public class FedexAdapter implements DeliveryProviderAdapter {
         }
 
         /**
-         * Create shipment - TODO: Implement Ship API later
+         * Create shipment using FedEx Ship API.
+         * Sends minimal mandatory fields to FedEx shipment creation endpoint.
          */
         @Override
         public OrderResponse createShipment(CreateOrderRequest request) {
             log.info("FedEx: Creating shipment for order {}", request.getExternalOrderId());
-            // TODO: Implement Ship API integration
+
+            try {
+                // Validate input
+                if (request == null || request.getPickupAddress() == null 
+                        || request.getDeliveryAddress() == null 
+                        || request.getPackageDetails() == null) {
+                    log.error("Missing required fields in CreateOrderRequest");
+                    return buildErrorResponse(request, "Missing required order information");
+                }
+
+                // Step 1: Get valid access token
+                String token = getValidAccessToken();
+                String authHeader = "Bearer " + token;
+
+                // Step 2: Build FedEx shipment request
+                FedexShipmentRequest shipmentRequest = buildShipmentRequest(request);
+                log.info("FedEx Ship API Request prepared for order: {}", request.getExternalOrderId());
+
+                // Step 3: Call FedEx Ship API
+                log.debug("Calling FedEx Ship API for order {}", request.getExternalOrderId());
+                Response<FedexShipmentResponse> response = 
+                        fedexApiClient.createShipment(authHeader, shipmentRequest).execute();
+                log.info("FedEx Ship API Response received for order: {} (HTTP {})", 
+                        request.getExternalOrderId(), response.code());
+                if (!response.isSuccessful()) {
+                    String errorBody = response.errorBody() != null ? 
+                            response.errorBody().string() : "no error body";
+                    log.error("FedEx Ship API error for order {}: HTTP {} - {}", 
+                            request.getExternalOrderId(), response.code(), errorBody);
+                    return buildErrorResponse(request, "FedEx Ship API failed: HTTP " + response.code());
+                }
+
+                FedexShipmentResponse body = response.body();
+                if (body == null) {
+                    log.error("FedEx Ship API returned null response for order {}", 
+                            request.getExternalOrderId());
+                    return buildErrorResponse(request, "FedEx Ship API returned no response");
+                }
+
+                // Step 5: Check for API errors in response
+                if (body.getErrors() != null && !body.getErrors().isEmpty()) {
+                    String errorMsg = body.getErrors().stream()
+                            .map(e -> e.getMessage() != null ? e.getMessage() : "Unknown error")
+                            .reduce("", (a, b) -> a + "; " + b);
+                    log.error("FedEx Ship API returned errors for order {}: {}", 
+                            request.getExternalOrderId(), errorMsg);
+                    return buildErrorResponse(request, "FedEx error: " + errorMsg);
+                }
+
+                // Step 6: Extract tracking number and shipment details from response
+                String trackingNumber = null;
+                if (body.getOutput() != null 
+                        && body.getOutput().getCompletedShipmentDetail() != null
+                        && body.getOutput().getCompletedShipmentDetail().getPieceResponses() != null
+                        && !body.getOutput().getCompletedShipmentDetail().getPieceResponses().isEmpty()) {
+                    
+                    FedexShipmentResponse.PieceResponse pieceResponse = 
+                            body.getOutput().getCompletedShipmentDetail().getPieceResponses().get(0);
+                    trackingNumber = pieceResponse.getTrackingNumber();
+                    log.debug("Extracted tracking number from FedEx response: {}", trackingNumber);
+                }
+
+                if (trackingNumber == null) {
+                    log.error("FedEx Ship API: tracking number not found in response for order {}", 
+                            request.getExternalOrderId());
+                    return buildErrorResponse(request, "FedEx did not return tracking number");
+                }
+
+                log.info("FedEx shipment created successfully. Order: {}, Tracking: {}", 
+                        request.getExternalOrderId(), trackingNumber);
+
+                // Step 7: Build and return success response
+                return OrderResponse.builder()
+                        .externalOrderId(request.getExternalOrderId())
+                        .trackingId(trackingNumber)
+                        .provider(ProviderCode.FEDEX)
+                        .status(DeliveryStatus.ORDER_CONFIRMED)
+                        .message("Shipment created successfully with FedEx")
+                        .build();
+
+            } catch (Exception e) {
+                log.error("Error creating FedEx shipment for order {}", 
+                        request != null ? request.getExternalOrderId() : "unknown", e);
+                return buildErrorResponse(request, "Exception: " + e.getMessage());
+            }
+        }
+
+        /**
+         * Build FedEx Shipment Request from CreateOrderRequest with minimal mandatory fields.
+         */
+        private FedexShipmentRequest buildShipmentRequest(CreateOrderRequest request) {
+            // Get service type (default to STANDARD_OVERNIGHT)
+            String fedexServiceType = mapServiceTypeToFedex(request.getServiceType());
+
+            // Map payment mode to FedEx payment type
+            String paymentType = mapPaymentModeToFedex(request.getPaymentMode());
+
+            // Build shipper party
+            FedexShipmentRequest.Party shipper = FedexShipmentRequest.Party.builder()
+                    .contact(FedexShipmentRequest.Contact.builder()
+                            .personName(request.getPickupAddress().getName())
+                            .phoneNumber(request.getPickupAddress().getPhone())
+                            .build())
+                    .address(FedexShipmentRequest.Address.builder()
+                            .streetLines(List.of(request.getPickupAddress().getAddress()))
+                            .city(request.getPickupAddress().getCity())
+                            .stateOrProvinceCode(request.getPickupAddress().getStateCode())
+                            .postalCode(request.getPickupAddress().getPincode())
+                            .countryCode(request.getPickupAddress().getCountryCode() != null ? 
+                                    request.getPickupAddress().getCountryCode() : "IN")
+                            .build())
+                    .build();
+
+            // Build recipient party
+            FedexShipmentRequest.Party recipient = FedexShipmentRequest.Party.builder()
+                    .contact(FedexShipmentRequest.Contact.builder()
+                            .personName(request.getDeliveryAddress().getName())
+                            .phoneNumber(request.getDeliveryAddress().getPhone())
+                            .build())
+                    .address(FedexShipmentRequest.Address.builder()
+                            .streetLines(List.of(request.getDeliveryAddress().getAddress()))
+                            .city(request.getDeliveryAddress().getCity())
+                            .stateOrProvinceCode(request.getDeliveryAddress().getStateCode())
+                            .postalCode(request.getDeliveryAddress().getPincode())
+                            .countryCode(request.getDeliveryAddress().getCountryCode() != null ? 
+                                    request.getDeliveryAddress().getCountryCode() : "IN")
+                            .build())
+                    .build();
+
+            // Build shipping charges payment
+            FedexShipmentRequest.ShippingChargesPayment payment = 
+                    FedexShipmentRequest.ShippingChargesPayment.builder()
+                    .paymentType(paymentType)
+                    .payor(FedexShipmentRequest.Payor.builder()
+                            .responsibleParty(FedexShipmentRequest.ResponsibleParty.builder()
+                                    .accountNumber(FedexShipmentRequest.ValueKey.builder()
+                                            .value(fedexProperties.getAccountNumber())
+                                            .key("")
+                                            .build())
+                                    .build())
+                            .address(FedexShipmentRequest.Address.builder()
+                                    .streetLines(List.of(request.getPickupAddress().getAddress()))
+                                    .city(request.getPickupAddress().getCity())
+                                    .stateOrProvinceCode(request.getPickupAddress().getStateCode())
+                                    .postalCode(request.getPickupAddress().getPincode())
+                                    .countryCode(request.getPickupAddress().getCountryCode() != null ? 
+                                            request.getPickupAddress().getCountryCode() : "IN")
+                                    .build())
+                            .build())
+                    .build();
+
+            // Build package line item with weight
+            Double weightInKg = request.getPackageDetails().getWeightInKg();
+            if (weightInKg == null || weightInKg <= 0) {
+                weightInKg = 1.0; // Default weight in KG
+            }
+            log.debug("Weight converted to KG: {} KG (original: {} {})", 
+                    weightInKg, 
+                    request.getPackageDetails().getWeight() != null ? 
+                        request.getPackageDetails().getWeight() : request.getPackageDetails().getWeightKg(),
+                    request.getPackageDetails().getWeightUnit() != null ? 
+                        request.getPackageDetails().getWeightUnit().getCode() : "KG");
+
+            FedexShipmentRequest.PackageLineItem packageItem = 
+                    FedexShipmentRequest.PackageLineItem.builder()
+                    .weight(FedexShipmentRequest.Weight.builder()
+                            .units("KG")
+                            .value(String.format("%.2f", weightInKg))
+                            .build())
+                    .build();
+
+            // Build requested shipment
+            FedexShipmentRequest.RequestedShipment requestedShipment = 
+                    FedexShipmentRequest.RequestedShipment.builder()
+                    .shipper(shipper)
+                    .recipients(List.of(recipient))
+                    .serviceType(fedexServiceType)
+                    .packagingType("YOUR_PACKAGING")
+                    .pickupType("USE_SCHEDULED_PICKUP")
+                    .shippingChargesPayment(payment)
+                    .labelSpecification(new FedexShipmentRequest.LabelSpecification())
+                    .requestedPackageLineItems(List.of(packageItem))
+                    .build();
+
+            // Build and return complete shipment request
+            return FedexShipmentRequest.builder()
+                    .requestedShipment(requestedShipment)
+                    .accountNumber(FedexShipmentRequest.AccountNumber.builder()
+                            .value(fedexProperties.getAccountNumber())
+                            .build())
+                    .build();
+        }
+
+        /**
+         * Map internal ServiceType enum to FedEx service type string.
+         */
+        private String mapServiceTypeToFedex(ServiceType serviceType) {
+            if (serviceType == null) {
+                return "STANDARD_OVERNIGHT";
+            }
+
+            return switch (serviceType) {
+                case SAME_DAY -> "SAME_DAY";
+                case EXPRESS -> "PRIORITY_OVERNIGHT";
+                case ECONOMY -> "SMART_POST";
+                case STANDARD -> "STANDARD_OVERNIGHT";
+                default -> "STANDARD_OVERNIGHT";
+            };
+        }
+
+        /**
+         * Map PaymentMode enum to FedEx payment type.
+         */
+        private String mapPaymentModeToFedex(PaymentMode paymentMode) {
+            if (paymentMode == null) {
+                return "SENDER";
+            }
+
+            return switch (paymentMode) {
+                case PREPAID -> "SENDER";
+                case COD -> "RECIPIENT"; // Collect on delivery - recipient pays
+                case POSTPAID -> "SENDER"; // Postpaid also means sender bears cost
+                default -> "SENDER";
+            };
+        }
+
+        /**
+         * Build error response for failed shipment creation.
+         */
+        private OrderResponse buildErrorResponse(CreateOrderRequest request, String errorMessage) {
             return OrderResponse.builder()
-                    .trackingId("FX" + System.currentTimeMillis())
+                    .externalOrderId(request != null ? request.getExternalOrderId() : "unknown")
                     .provider(ProviderCode.FEDEX)
-                    .status(DeliveryStatus.ORDER_CONFIRMED)
-                    .message("Dummy FedEx shipment created (Ship API not integrated yet)")
+                    .status(DeliveryStatus.PENDING)
+                    .message(errorMessage)
                     .build();
         }
 
