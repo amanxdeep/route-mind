@@ -8,6 +8,7 @@ import com.example.RouteMind.entity.Shipment;
 import com.example.RouteMind.enums.DeliveryStatus;
 import com.example.RouteMind.enums.ProviderCode;
 import com.example.RouteMind.factory.ProviderFactory;
+import com.example.RouteMind.mapper.AppModelMapper;
 import com.example.RouteMind.repository.OrderRepository;
 import com.example.RouteMind.repository.ShipmentRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,20 +21,21 @@ import org.springframework.util.ObjectUtils;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class OrderService {
     private final OrderRepository orderRepository;
     private final ShipmentRepository shipmentRepository;
     private final ProviderFactory providerFactory;
+    private final AppModelMapper appModelMapper;
 
     public OrderResponse createOrder(CreateOrderRequest request) {
         log.info("Creating order request: {}", request);
 
         validateOrderRequest(request);
 
-        Order order = mapToOrder(request);
+        Order order = appModelMapper.createOrderRequestModelMapper.createOrderRequestToOrder(request);
         Order orderEntity = saveOrder(order);
 
         ProviderCode providerCode = getProviderCode(request);
@@ -109,28 +111,6 @@ public class OrderService {
 
     private Optional<Order> getOrderByExternalId(String externalOrderId) {
         return orderRepository.findByExternalOrderId(externalOrderId);
-    }
-
-
-    private Order mapToOrder(CreateOrderRequest request) {
-        return Order.builder()
-                .externalOrderId(request.getExternalOrderId())
-                .customerId(request.getCustomerId())
-                .pickUpName(request.getPickupAddress().getName())
-                .pickUpPhone(request.getPickupAddress().getPhone())
-                .pickUpAddress(request.getPickupAddress().getAddress())
-                .pickUpCity(request.getPickupAddress().getCity())
-                .pickUpState(request.getPickupAddress().getState())
-                .pickUpPinCode(request.getPickupAddress().getPincode())
-                .deliverName(request.getDeliveryAddress().getName())
-                .deliveryPhone(request.getDeliveryAddress().getPhone())
-                .deliveryAddress(request.getDeliveryAddress().getAddress())
-                .deliveryCity(request.getDeliveryAddress().getCity())
-                .deliveryState(request.getDeliveryAddress().getState())
-                .deliveryPinCode(request.getDeliveryAddress().getPincode())
-                .paymentMode(request.getPaymentMode())
-                .codValue(request.getOrderValue())
-                .build();
     }
 
 }
