@@ -83,7 +83,7 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-    @Transactional
+
     private void saveShipmentAndMarkOrder(UUID orderId, Shipment shipment) {
         Order managed = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
@@ -94,7 +94,6 @@ public class OrderService {
         orderRepository.save(managed);
     }
 
-    @Transactional
     private void markOrderFailed(UUID orderId, String reason) {
         orderRepository.findById(orderId).ifPresent(o -> {
             o.setStatus(DeliveryStatus.DELIVERY_FAILED);
@@ -103,12 +102,12 @@ public class OrderService {
     }
 
 
-    public Optional<Order> getOrderById(UUID id) {
+    private Optional<Order> getOrderById(UUID id) {
         return orderRepository.findById(id);
     }
 
 
-    public Optional<Order> getOrderByExternalId(String externalOrderId) {
+    private Optional<Order> getOrderByExternalId(String externalOrderId) {
         return orderRepository.findByExternalOrderId(externalOrderId);
     }
 
