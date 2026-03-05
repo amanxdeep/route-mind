@@ -9,8 +9,6 @@ import com.example.RouteMind.enums.DeliveryStatus;
 import com.example.RouteMind.enums.ProviderCode;
 import com.example.RouteMind.factory.ProviderFactory;
 import com.example.RouteMind.mapper.AppModelMapper;
-import com.example.RouteMind.repository.OrderRepository;
-import com.example.RouteMind.repository.ShipmentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,18 +23,17 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class OrderService {
-    private final OrderRepository orderRepository;
-    private final ShipmentRepository shipmentRepository;
     private final ProviderFactory providerFactory;
     private final AppModelMapper appModelMapper;
+    private final OrderDataAccessService orderDataAccessService;
 
     public OrderResponse createOrder(CreateOrderRequest request) {
         log.info("Creating order request: {}", request);
 
         validateOrderRequest(request);
 
-        Order order = appModelMapper.createOrderRequestModelMapper.createOrderRequestToOrder(request);
-        Order orderEntity = saveOrder(order);
+        Order order = appModelMapper.createOrderRequestToOrder(request);
+        Order orderEntity = orderDataAccessService.saveOrder(order);
 
         ProviderCode providerCode = getProviderCode(request);
 
@@ -46,7 +43,7 @@ public class OrderService {
 
             Shipment shipment = getShipment(request, response, providerCode);
 
-            saveShipmentAndMarkOrder(orderEntity.getId(), shipment);
+            orderDataAccessService.saveShipmentAndMarkOrder(orderEntity.getId(), shipment);
 
             response.setOrderId(orderEntity.getId())
                     .setExternalOrderId(orderEntity.getExternalOrderId());
@@ -54,7 +51,7 @@ public class OrderService {
             return response;
         } catch (Exception ex) {
             log.error("Failed to create shipment for order {}", request.getExternalOrderId(), ex);
-            markOrderFailed(orderEntity.getId(), ex.getMessage());
+            orderDataAccessService.markOrderFailed(orderEntity.getId(), ex.getMessage());
             throw new ProviderException(providerCode, ex.getMessage());
         }
     }
@@ -69,7 +66,7 @@ public class OrderService {
     }
 
     private void validateOrderRequest(CreateOrderRequest request) {
-        if (orderRepository.existsByExternalOrderId(request.getExternalOrderId())) {
+        if (orderDataAccessService.getOrderByExternalId(request.getExternalOrderId()).isPresent()) {
             throw new RuntimeException("Order already exists: " + request.getExternalOrderId());
         }
     }
@@ -79,38 +76,6 @@ public class OrderService {
             return ProviderCode.BLUEDART;
 
         return request.getPreferredProvider();
-    }
-
-    private Order saveOrder(Order order) {
-        return orderRepository.save(order);
-    }
-
-
-    private void saveShipmentAndMarkOrder(UUID orderId, Shipment shipment) {
-        Order managed = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
-
-        shipment.setOrder(managed);
-        shipmentRepository.save(shipment);
-        managed.setStatus(DeliveryStatus.ORDER_CONFIRMED);
-        orderRepository.save(managed);
-    }
-
-    private void markOrderFailed(UUID orderId, String reason) {
-        orderRepository.findById(orderId).ifPresent(o -> {
-            o.setStatus(DeliveryStatus.DELIVERY_FAILED);
-            orderRepository.save(o);
-        });
-    }
-
-
-    private Optional<Order> getOrderById(UUID id) {
-        return orderRepository.findById(id);
-    }
-
-
-    private Optional<Order> getOrderByExternalId(String externalOrderId) {
-        return orderRepository.findByExternalOrderId(externalOrderId);
     }
 
 }
