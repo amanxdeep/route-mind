@@ -5,6 +5,7 @@ package com.example.RouteMind.enums;
  */
 import lombok.Getter;
 
+@Getter
 public enum DeliveryStatus {
 
     ORDER_PLACED("Order has been Placed"),
