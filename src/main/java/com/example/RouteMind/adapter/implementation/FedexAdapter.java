@@ -263,14 +263,6 @@ public class FedexAdapter implements DeliveryProviderAdapter {
                                             .key("")
                                             .build())
                                     .build())
-                            .address(FedexShipmentRequest.Address.builder()
-                                    .streetLines(List.of(request.getPickupAddress().getAddress()))
-                                    .city(request.getPickupAddress().getCity())
-                                    .stateOrProvinceCode(request.getPickupAddress().getStateCode())
-                                    .postalCode(request.getPickupAddress().getPincode())
-                                    .countryCode(request.getPickupAddress().getCountryCode() != null ?
-                                            request.getPickupAddress().getCountryCode() : "IN")
-                                    .build())
                             .build())
                     .build();
 
@@ -645,7 +637,7 @@ public class FedexAdapter implements DeliveryProviderAdapter {
             if (trackResult.getScanEvents() != null && !trackResult.getScanEvents().isEmpty()) {
                 for (FedexTrackingResponse.ScanEvent scanEvent : trackResult.getScanEvents()) {
                     // Map FedEx status code to our DeliveryStatus
-                    DeliveryStatus status = mapFedexStatus(scanEvent.getEventTypeCode());
+                    DeliveryStatus status = mapFedexStatus(scanEvent.getEventType());
 
                     // Build location string
                     String location = "";
@@ -715,17 +707,31 @@ public class FedexAdapter implements DeliveryProviderAdapter {
          * Looks for ESTIMATED_DELIVERY in dateDetail array.
          */
         private LocalDate extractEstimatedDeliveryDate(FedexTrackingResponse.TrackResult trackResult) {
-            if (trackResult.getDateDetail() != null && !trackResult.getDateDetail().isEmpty()) {
-                for (FedexTrackingResponse.DateDetail dateDetail : trackResult.getDateDetail()) {
-                    if ("ESTIMATED_DELIVERY".equals(dateDetail.getType()) && dateDetail.getDate() != null) {
+            if (trackResult.getServiceCommitMessage() != null
+                    && "ESTIMATED_DELIVERY_DATE_UNAVAILABLE".equals(trackResult.getServiceCommitMessage().getType())) {
+                return null; // No date available
+            }
+
+            // Try to get from estimatedDeliveryTimeWindow
+            if (trackResult.getEstimatedDeliveryTimeWindow() != null && trackResult.getEstimatedDeliveryTimeWindow().getWindow() != null) {
+                String begins = trackResult.getEstimatedDeliveryTimeWindow().getWindow().getBegins();
+                if (begins != null) {
+                    try {
+                        return parseFedexTimestamp(begins).toLocalDate();
+                    } catch (Exception e) {
+                        log.warn("Failed to parse estimated delivery date from time window: {}", begins, e);
+                    }
+                }
+            }
+
+            // Fallback to dateAndTimes array
+            if (trackResult.getDateAndTimes() != null && !trackResult.getDateAndTimes().isEmpty()) {
+                for (FedexTrackingResponse.DateAndTime dateDetail : trackResult.getDateAndTimes()) {
+                    if ("ESTIMATED_DELIVERY".equals(dateDetail.getType()) && dateDetail.getDateTime() != null) {
                         try {
-                            // Parse ISO date string (e.g., "2024-01-15" or "2024-01-15T00:00:00")
-                            String dateStr = dateDetail.getDate();
-                            if (dateStr.length() >= 10) {
-                                return LocalDate.parse(dateStr.substring(0, 10));
-                            }
+                            return parseFedexTimestamp(dateDetail.getDateTime()).toLocalDate();
                         } catch (Exception e) {
-                            log.warn("Failed to parse estimated delivery date: {}", dateDetail.getDate(), e);
+                            log.warn("Failed to parse estimated delivery date from dateAndTimes: {}", dateDetail.getDateTime(), e);
                         }
                     }
                 }
@@ -745,7 +751,7 @@ public class FedexAdapter implements DeliveryProviderAdapter {
 
             try {
                 // Remove timezone suffix if present (Z, +05:30, etc.)
-                String cleaned = timestampStr.replaceAll("[Zz]|[+-]\d{2}:\d{2}$", "").trim();
+                String cleaned = timestampStr.replaceAll("[Zz]|[+-]\\d{2}:\\d{2}$", "").trim();
 
                 // Try parsing ISO format with time (e.g., "2024-01-15T10:30:00")
                 if (cleaned.length() >= 19) {

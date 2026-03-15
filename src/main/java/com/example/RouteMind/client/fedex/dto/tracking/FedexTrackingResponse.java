@@ -1,26 +1,38 @@
 package com.example.RouteMind.client.fedex.dto.tracking;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import java.time.LocalDateTime;
+import lombok.NoArgsConstructor;
+
 import java.util.List;
 
-/**
- * Enhanced FedEx Track API response with detailed scan events.
- */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class FedexTrackingResponse {
 
     @JsonProperty("output")
     private Output output;
 
+    @JsonProperty("errors")
+    private List<Error> errors;
+
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Output {
         @JsonProperty("completeTrackResults")
         private List<CompleteTrackResult> completeTrackResults;
     }
 
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class CompleteTrackResult {
         @JsonProperty("trackingNumber")
         private String trackingNumber;
@@ -30,18 +42,30 @@ public class FedexTrackingResponse {
     }
 
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class TrackResult {
         @JsonProperty("latestStatusDetail")
         private StatusDetail latestStatusDetail;
 
         @JsonProperty("scanEvents")
-        private List<ScanEvent> scanEvents;  // NEW: Detailed scan history
+        private List<ScanEvent> scanEvents;
 
-        @JsonProperty("dateDetail")
-        private List<DateDetail> dateDetail;  // NEW: Estimated delivery dates
+        @JsonProperty("dateAndTimes")
+        private List<DateAndTime> dateAndTimes;
+
+        @JsonProperty("estimatedDeliveryTimeWindow")
+        private TimeWindow estimatedDeliveryTimeWindow;
+
+        @JsonProperty("serviceCommitMessage")
+        private ServiceCommitMessage serviceCommitMessage;
     }
 
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class StatusDetail {
         @JsonProperty("code")
         private String code;
@@ -51,15 +75,12 @@ public class FedexTrackingResponse {
 
         @JsonProperty("scanLocation")
         private ScanLocation scanLocation;
-
-        @JsonProperty("eventDescription")  // NEW: Additional description
-        private String eventDescription;
-
-        @JsonProperty("eventTime")  // NEW: Timestamp for latest status
-        private String eventTime;
     }
 
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ScanLocation {
         @JsonProperty("city")
         private String city;
@@ -67,15 +88,17 @@ public class FedexTrackingResponse {
         @JsonProperty("stateOrProvinceCode")
         private String stateOrProvinceCode;
 
-        @JsonProperty("countryCode")  // NEW: Country code
+        @JsonProperty("countryCode")
         private String countryCode;
     }
 
-    // NEW: Detailed scan event structure
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ScanEvent {
         @JsonProperty("date")
-        private String date;  // Format: "2024-01-15T10:30:00"
+        private String date;
 
         @JsonProperty("eventType")
         private String eventType;
@@ -85,18 +108,58 @@ public class FedexTrackingResponse {
 
         @JsonProperty("scanLocation")
         private ScanLocation scanLocation;
-
-        @JsonProperty("eventTypeCode")
-        private String eventTypeCode;  // FedEx status code
     }
 
-    // NEW: Date details for estimated delivery
     @Data
-    public static class DateDetail {
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DateAndTime {
         @JsonProperty("type")
-        private String type;  // e.g., "ESTIMATED_DELIVERY", "ACTUAL_DELIVERY"
+        private String type;
 
-        @JsonProperty("date")
-        private String date;
+        @JsonProperty("dateTime")
+        private String dateTime;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TimeWindow {
+        @JsonProperty("window")
+        private Window window;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Window {
+        @JsonProperty("begins")
+        private String begins;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ServiceCommitMessage {
+        @JsonProperty("type")
+        private String type;
+        @JsonProperty("message")
+        private String message;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Error {
+        @JsonProperty("code")
+        private String code;
+
+        @JsonProperty("message")
+        private String message;
     }
 }

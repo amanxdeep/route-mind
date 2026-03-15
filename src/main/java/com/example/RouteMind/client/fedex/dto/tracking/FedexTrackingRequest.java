@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-/**
- * Minimal FedEx Track API request.
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
