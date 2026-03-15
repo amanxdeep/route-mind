@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-/**
- * FedEx Shipment API Response
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -26,66 +23,64 @@ public class FedexShipmentResponse {
     @JsonProperty("output")
     private Output output;
 
-    @JsonProperty("errors")
-    private List<ErrorDetail> errors;
-
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class Output {
-        
-        @JsonProperty("transactionId")
-        private String transactionId;
 
-        @JsonProperty("customerTransactionId")
-        private String customerTransactionId;
+        @JsonProperty("transactionShipments")
+        private List<TransactionShipment> transactionShipments;
 
-        @JsonProperty("shipmentId")
-        private String shipmentId;
+        @JsonProperty("alerts")
+        private List<Alert> alerts;
 
         @JsonProperty("jobId")
         private String jobId;
-
-        @JsonProperty("warnings")
-        private List<String> warnings;
-
-        @JsonProperty("pleaseIgnore")
-        private String pleaseIgnore;
-
-        @JsonProperty("asynchronousShippingDataEligible")
-        private Boolean asynchronousShippingDataEligible;
-
-        @JsonProperty("completedShipmentDetail")
-        private CompletedShipmentDetail completedShipmentDetail;
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class CompletedShipmentDetail {
-        
-        @JsonProperty("shipmentType")
-        private String shipmentType;
+    public static class TransactionShipment {
 
-        @JsonProperty("masterTrackingNumber")
-        private String masterTrackingNumber;
+        @JsonProperty("serviceType")
+        private String serviceType;
 
-        @JsonProperty("carrierCode")
-        private String carrierCode;
+        @JsonProperty("shipDatestamp")
+        private String shipDatestamp;
+
+        @JsonProperty("serviceCategory")
+        private String serviceCategory;
+
+        @JsonProperty("shipmentDocuments")
+        private List<ShipmentDocument> shipmentDocuments;
+
+        @JsonProperty("pieceResponses")
+        private List<PieceResponse> pieceResponses;
 
         @JsonProperty("serviceName")
         private String serviceName;
 
-        @JsonProperty("serviceId")
-        private String serviceId;
+        @JsonProperty("masterTrackingNumber")
+        private String masterTrackingNumber;
+    }
 
-        @JsonProperty("fieldStatuses")
-        private List<FieldStatus> fieldStatuses;
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ShipmentDocument {
 
-        @JsonProperty("pieceResponses")
-        private List<PieceResponse> pieceResponses;
+        @JsonProperty("trackingNumber")
+        private String trackingNumber;
+
+        @JsonProperty("encodedLabel")
+        private String encodedLabel;
+
+        @JsonProperty("url")
+        private String url;
     }
 
     @Data
@@ -93,18 +88,15 @@ public class FedexShipmentResponse {
     @AllArgsConstructor
     @Builder
     public static class PieceResponse {
-        
+
+        @JsonProperty("netChargeAmount")
+        private Double netChargeAmount;
+
         @JsonProperty("trackingNumber")
         private String trackingNumber;
 
         @JsonProperty("masterTrackingNumber")
         private String masterTrackingNumber;
-
-        @JsonProperty("formId")
-        private String formId;
-
-        @JsonProperty("alerts")
-        private List<Alert> alerts;
     }
 
     @Data
@@ -112,38 +104,9 @@ public class FedexShipmentResponse {
     @AllArgsConstructor
     @Builder
     public static class Alert {
-        
+
         @JsonProperty("code")
         private String code;
-
-        @JsonProperty("message")
-        private String message;
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class FieldStatus {
-        
-        @JsonProperty("name")
-        private String name;
-
-        @JsonProperty("status")
-        private String status;
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class ErrorDetail {
-        
-        @JsonProperty("code")
-        private String code;
-
-        @JsonProperty("parameterRelated")
-        private String parameterRelated;
 
         @JsonProperty("message")
         private String message;
