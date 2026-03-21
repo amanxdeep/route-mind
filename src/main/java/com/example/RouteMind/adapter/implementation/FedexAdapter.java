@@ -5,6 +5,8 @@ import com.example.RouteMind.client.fedex.FedexApiClient;
 import com.example.RouteMind.client.fedex.dto.FedexOAuthResponse;
 import com.example.RouteMind.client.fedex.dto.serviceability.FedexRateRequest;
 import com.example.RouteMind.client.fedex.dto.serviceability.FedexRateResponse;
+import com.example.RouteMind.client.fedex.dto.serviceability.FedexTransitTimesRequest;
+import com.example.RouteMind.client.fedex.dto.serviceability.FedexTransitTimesResponse;
 import com.example.RouteMind.client.fedex.dto.shipment.FedexShipmentRequest;
 import com.example.RouteMind.client.fedex.dto.shipment.FedexShipmentResponse;
 import com.example.RouteMind.client.fedex.dto.tracking.FedexTrackingRequest;
@@ -31,6 +33,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 
@@ -42,6 +46,18 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class FedexAdapter implements DeliveryProviderAdapter {
+        private static final Map<String, Integer> TRANSIT_TIME_TOKEN_TO_DAYS = Map.ofEntries(
+                Map.entry("ONE_DAY", 1),
+                Map.entry("TWO_DAYS", 2),
+                Map.entry("THREE_DAYS", 3),
+                Map.entry("FOUR_DAYS", 4),
+                Map.entry("FIVE_DAYS", 5),
+                Map.entry("SIX_DAYS", 6),
+                Map.entry("SEVEN_DAYS", 7),
+                Map.entry("EIGHT_DAYS", 8),
+                Map.entry("NINE_DAYS", 9),
+                Map.entry("TEN_DAYS", 10)
+        );
 
 
         // Inject FedEx API client and properties
@@ -51,6 +67,12 @@ public class FedexAdapter implements DeliveryProviderAdapter {
          // Simple in-memory token cache (for production, consider Redis or database)
         private volatile String accessToken;
         private volatile Instant tokenExpiry;
+
+        @lombok.Value
+        public static class TransitDaysRange {
+            Integer minDays;
+            Integer maxDays;
+        }
 
         @Override
         public ProviderCode getProviderCode() {
@@ -474,6 +496,66 @@ public class FedexAdapter implements DeliveryProviderAdapter {
             }
         }
 
+        public TransitDaysRange getTransitDaysRange(String pickupPincode, String deliveryPincode, Double weightKg) {
+            try {
+                String token = getValidAccessToken();
+                String authHeader = "Bearer " + token;
+                FedexTransitTimesRequest request = buildTransitTimesRequest(pickupPincode, deliveryPincode, weightKg);
+                Response<FedexTransitTimesResponse> response =
+                        fedexApiClient.getTransitTimes(authHeader, request).execute();
+
+                if (!response.isSuccessful()) {
+                    String errorBody = response.errorBody() != null
+                            ? response.errorBody().string()
+                            : "no error body";
+                    log.warn("FedEx Availability API error: HTTP {} - {}", response.code(), errorBody);
+                    return null;
+                }
+
+                FedexTransitTimesResponse body = response.body();
+                if (body == null
+                        || body.getOutput() == null
+                        || body.getOutput().getTransitTimes() == null
+                        || body.getOutput().getTransitTimes().isEmpty()
+                        || body.getOutput().getTransitTimes().get(0).getTransitTimeDetails() == null
+                        || body.getOutput().getTransitTimes().get(0).getTransitTimeDetails().isEmpty()) {
+                    log.warn("FedEx Availability API returned empty transit details");
+                    return null;
+                }
+
+                for (FedexTransitTimesResponse.TransitTimeDetail detail
+                        : body.getOutput().getTransitTimes().get(0).getTransitTimeDetails()) {
+                    if (detail == null || detail.getCommit() == null || detail.getCommit().getTransitDays() == null) {
+                        continue;
+                    }
+
+                    FedexTransitTimesResponse.TransitDays transitDays = detail.getCommit().getTransitDays();
+                    Integer min = parseTransitTokenToDays(transitDays.getMinimumTransitTime());
+                    Integer max = parseTransitTokenToDays(transitDays.getMaximumTransitTime());
+
+                    if (min != null || max != null) {
+                        if (min == null) {
+                            min = max;
+                        }
+                        if (max == null) {
+                            max = min;
+                        }
+                        return new TransitDaysRange(min, max);
+                    }
+
+                    TransitDaysRange fromDescription = parseTransitDescription(transitDays.getDescription());
+                    if (fromDescription != null) {
+                        return fromDescription;
+                    }
+                }
+            } catch (Exception ex) {
+                log.warn("FedEx Availability API transit lookup failed for {} -> {}",
+                        pickupPincode, deliveryPincode, ex);
+            }
+
+            return null;
+        }
+
         // ===================== PRIVATE HELPER METHODS =====================
 
         /**
@@ -527,6 +609,79 @@ public class FedexAdapter implements DeliveryProviderAdapter {
 
             log.info("FedEx rate retrieved: {}", amount);
             return amount;
+        }
+
+        private FedexTransitTimesRequest buildTransitTimesRequest(String pickupPincode, String deliveryPincode, Double weightKg) {
+            if (weightKg == null || weightKg <= 0) {
+                weightKg = 0.5;
+            }
+
+            FedexTransitTimesRequest.Party shipper = FedexTransitTimesRequest.Party.builder()
+                    .address(FedexTransitTimesRequest.Address.builder()
+                            .postalCode(pickupPincode)
+                            .countryCode("IN")
+                            .build())
+                    .build();
+
+            FedexTransitTimesRequest.Party recipient = FedexTransitTimesRequest.Party.builder()
+                    .address(FedexTransitTimesRequest.Address.builder()
+                            .postalCode(deliveryPincode)
+                            .countryCode("IN")
+                            .build())
+                    .build();
+
+            FedexTransitTimesRequest.RequestedPackageLineItem packageLineItem =
+                    FedexTransitTimesRequest.RequestedPackageLineItem.builder()
+                            .weight(FedexTransitTimesRequest.Weight.builder()
+                                    .units("KG")
+                                    .value(weightKg)
+                                    .build())
+                            .build();
+
+            FedexTransitTimesRequest.RequestedShipment requestedShipment =
+                    FedexTransitTimesRequest.RequestedShipment.builder()
+                            .shipper(shipper)
+                            .recipients(List.of(recipient))
+                            .shipDateStamp(LocalDate.now().toString())
+                            .requestedPackageLineItems(List.of(packageLineItem))
+                            .pickupType("DROPOFF_AT_FEDEX_LOCATION")
+                            .build();
+
+            return FedexTransitTimesRequest.builder()
+                    .requestedShipment(requestedShipment)
+                    .carrierCodes(List.of("FDXE"))
+                    .accountNumber(FedexTransitTimesRequest.AccountNumber.builder()
+                            .value(fedexProperties.getAccountNumber())
+                            .build())
+                    .systemOfMeasureType("METRIC")
+                    .build();
+        }
+
+        private Integer parseTransitTokenToDays(String token) {
+            if (token == null || token.isBlank()) {
+                return null;
+            }
+            return TRANSIT_TIME_TOKEN_TO_DAYS.get(token.toUpperCase(Locale.ROOT));
+        }
+
+        private TransitDaysRange parseTransitDescription(String description) {
+            if (description == null || description.isBlank()) {
+                return null;
+            }
+
+            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(\\d+)").matcher(description);
+            List<Integer> values = new ArrayList<>();
+            while (matcher.find()) {
+                values.add(Integer.parseInt(matcher.group(1)));
+            }
+
+            if (values.isEmpty()) {
+                return null;
+            }
+            if (values.size() == 1) {
+                return new TransitDaysRange(values.get(0), values.get(0));
+            }
+            return new TransitDaysRange(values.get(0), values.get(1));
         }
 
         /**
