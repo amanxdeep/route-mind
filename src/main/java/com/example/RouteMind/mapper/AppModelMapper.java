@@ -1,5 +1,6 @@
 package com.example.RouteMind.mapper;
 
+import com.example.RouteMind.constants.MapperConstants;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;

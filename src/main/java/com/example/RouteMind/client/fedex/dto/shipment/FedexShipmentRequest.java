@@ -148,10 +148,6 @@ public class FedexShipmentRequest {
         private String key;
     }
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
     public static class LabelSpecification {
         // Can be extended with format, size, etc.
     }

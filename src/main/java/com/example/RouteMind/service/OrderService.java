@@ -78,4 +78,12 @@ public class OrderService {
         return request.getPreferredProvider();
     }
 
+    public Optional<Order> getOrderById(UUID id) {
+        return orderDataAccessService.getOrderById(id);
+
+    }
+    public Optional<Order> getOrderByExternalId(String externalId) {
+        return orderDataAccessService.getOrderByExternalId(externalId);
+    }
+
 }

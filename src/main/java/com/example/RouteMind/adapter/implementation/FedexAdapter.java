@@ -665,7 +665,7 @@ public class FedexAdapter implements DeliveryProviderAdapter {
             // Also include latest status if not already in scanEvents
             if (trackResult.getLatestStatusDetail() != null) {
                 FedexTrackingResponse.StatusDetail latest = trackResult.getLatestStatusDetail();
-                LocalDateTime latestTimestamp = parseFedexTimestamp(latest.getEventTime());
+                LocalDateTime latestTimestamp = null; // StatusDetail doesn't have timestamp
 
                 // Check if this event is already in the list (avoid duplicates)
                 boolean alreadyExists = events.stream()
@@ -681,7 +681,7 @@ public class FedexAdapter implements DeliveryProviderAdapter {
 
                     String latestDescription = latest.getDescription() != null && !latest.getDescription().isEmpty()
                             ? latest.getDescription()
-                            : (latest.getEventDescription() != null ? latest.getEventDescription() : "Status update");
+                            : "Status update"; // StatusDetail only has description
 
                     events.add(TrackingEventDto.builder()
                             .status(mapFedexStatus(latest.getCode()))

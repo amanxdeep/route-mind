@@ -23,6 +23,7 @@ public enum DeliveryStatus {
     RTO_INITIATED("Return to origin initiated"),
     RTO_COMPLETED("Package returned to origin"),
 
+    PENDING("Order is pending"),
     CANCELLED("Order cancelled by customer");
 
 
