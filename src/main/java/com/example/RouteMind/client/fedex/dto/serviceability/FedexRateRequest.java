@@ -40,11 +40,14 @@ public class FedexRateRequest {
         @JsonProperty("shipper")
         private Party shipper;
 
-        @JsonProperty("recipients")
-        private List<Party> recipients;
+        @JsonProperty("recipient")
+        private Party recipient;
 
         @JsonProperty("pickupType")
         private String pickupType; // e.g., "DROPOFF_AT_FEDEX_LOCATION"
+
+        @JsonProperty("rateRequestType")
+        private List<String> rateRequestType; // e.g., ["ACCOUNT", "LIST"]
 
         @JsonProperty("serviceType")
         private String serviceType; // optional; null to let FedEx return multiple

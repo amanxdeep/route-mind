@@ -519,16 +519,14 @@ public class FedexAdapter implements DeliveryProviderAdapter {
                 return null;
             }
 
-            FedexRateResponse.Money money =
-                    firstDetail.getRatedShipmentDetails().get(0).getTotalNetCharge();
-
-            if (money == null || money.getAmount() == null) {
+            BigDecimal amount = firstDetail.getRatedShipmentDetails().get(0).getTotalNetCharge();
+            if (amount == null) {
                 log.warn("FedEx Rate API: totalNetCharge missing");
                 return null;
             }
 
-            log.info("FedEx rate retrieved: {} {}", money.getAmount(), money.getCurrency());
-            return money.getAmount();
+            log.info("FedEx rate retrieved: {}", amount);
+            return amount;
         }
 
         /**
@@ -565,12 +563,11 @@ public class FedexAdapter implements DeliveryProviderAdapter {
                     .shipper(FedexRateRequest.Party.builder()
                             .address(originAddress)
                             .build())
-                    .recipients(List.of(
-                            FedexRateRequest.Party.builder()
-                                    .address(destAddress)
-                                    .build()
-                    ))
+                    .recipient(FedexRateRequest.Party.builder()
+                            .address(destAddress)
+                            .build())
                     .pickupType("DROPOFF_AT_FEDEX_LOCATION")
+                    .rateRequestType(List.of("ACCOUNT", "LIST"))
                     .packagingType("YOUR_PACKAGING")
                     .requestedPackageLineItems(List.of(pkg))
                     .build();

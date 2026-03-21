@@ -40,7 +40,7 @@ public interface FedexApiClient {
     );
 
     /**
-     * Rate API: Get shipping rates / serviceability
+     * Rate and Transit Times API.
      *
      * POST https://apis-sandbox.fedex.com/rate/v1/rates/quotes
      * Headers:
