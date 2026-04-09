@@ -5,58 +5,46 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.util.List;
 
-/**
- * Minimal FedEx Rate API request for quotes.
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class FedexRateRequest {
-
-    @JsonProperty("accountNumber")
-    private AccountNumber accountNumber;
+public class FedexTransitTimesRequest {
 
     @JsonProperty("requestedShipment")
     private RequestedShipment requestedShipment;
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class AccountNumber {
-        @JsonProperty("value")
-        private String value; // your FedEx account number
-    }
+    @JsonProperty("carrierCodes")
+    private List<String> carrierCodes;
+
+    @JsonProperty("accountNumber")
+    private AccountNumber accountNumber;
+
+    @JsonProperty("systemOfMeasureType")
+    private String systemOfMeasureType;
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class RequestedShipment {
-
         @JsonProperty("shipper")
         private Party shipper;
 
-        @JsonProperty("recipient")
-        private Party recipient;
+        @JsonProperty("recipients")
+        private List<Party> recipients;
 
-        @JsonProperty("pickupType")
-        private String pickupType; // e.g., "DROPOFF_AT_FEDEX_LOCATION"
-
-        @JsonProperty("rateRequestType")
-        private List<String> rateRequestType; // e.g., ["ACCOUNT", "LIST"]
-
-        @JsonProperty("serviceType")
-        private String serviceType; // optional; null to let FedEx return multiple
-
-        @JsonProperty("packagingType")
-        private String packagingType; // e.g., "YOUR_PACKAGING"
+        @JsonProperty("shipDateStamp")
+        private String shipDateStamp;
 
         @JsonProperty("requestedPackageLineItems")
-        private List<PackageLineItem> requestedPackageLineItems;
+        private List<RequestedPackageLineItem> requestedPackageLineItems;
+
+        @JsonProperty("pickupType")
+        private String pickupType;
     }
 
     @Data
@@ -77,14 +65,14 @@ public class FedexRateRequest {
         private String postalCode;
 
         @JsonProperty("countryCode")
-        private String countryCode; // "IN"
+        private String countryCode;
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class PackageLineItem {
+    public static class RequestedPackageLineItem {
         @JsonProperty("weight")
         private Weight weight;
     }
@@ -95,9 +83,18 @@ public class FedexRateRequest {
     @Builder
     public static class Weight {
         @JsonProperty("units")
-        private String units; // "KG"
+        private String units;
 
         @JsonProperty("value")
         private Double value;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class AccountNumber {
+        @JsonProperty("value")
+        private String value;
     }
 }

@@ -16,6 +16,8 @@ public class ApiConstants {
     public static final String TRACKING = "/tracking";
 
     public static final String PROVIDERS = "/providers";
+    public static final String FEDEX = "/fedex";
+    public static final String FEDEX_RATES = "/rates";
     public static final String WEBHOOKS = "/webhooks";
 
     public static final String BY_TRACKING_ID = "/tracking/{trackingId}";

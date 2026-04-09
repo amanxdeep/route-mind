@@ -5,6 +5,7 @@ package com.example.RouteMind.enums;
  */
 import lombok.Getter;
 
+@Getter
 public enum DeliveryStatus {
 
     ORDER_PLACED("Order has been Placed"),
@@ -22,6 +23,7 @@ public enum DeliveryStatus {
     RTO_INITIATED("Return to origin initiated"),
     RTO_COMPLETED("Package returned to origin"),
 
+    PENDING("Order is pending"),
     CANCELLED("Order cancelled by customer");
 
 

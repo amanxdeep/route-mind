@@ -5,6 +5,8 @@ import com.example.RouteMind.client.fedex.FedexApiClient;
 import com.example.RouteMind.client.fedex.dto.FedexOAuthResponse;
 import com.example.RouteMind.client.fedex.dto.serviceability.FedexRateRequest;
 import com.example.RouteMind.client.fedex.dto.serviceability.FedexRateResponse;
+import com.example.RouteMind.client.fedex.dto.serviceability.FedexTransitTimesRequest;
+import com.example.RouteMind.client.fedex.dto.serviceability.FedexTransitTimesResponse;
 import com.example.RouteMind.client.fedex.dto.shipment.FedexShipmentRequest;
 import com.example.RouteMind.client.fedex.dto.shipment.FedexShipmentResponse;
 import com.example.RouteMind.client.fedex.dto.tracking.FedexTrackingRequest;
@@ -31,6 +33,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -41,6 +46,18 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class FedexAdapter implements DeliveryProviderAdapter {
+        private static final Map<String, Integer> TRANSIT_TIME_TOKEN_TO_DAYS = Map.ofEntries(
+                Map.entry("ONE_DAY", 1),
+                Map.entry("TWO_DAYS", 2),
+                Map.entry("THREE_DAYS", 3),
+                Map.entry("FOUR_DAYS", 4),
+                Map.entry("FIVE_DAYS", 5),
+                Map.entry("SIX_DAYS", 6),
+                Map.entry("SEVEN_DAYS", 7),
+                Map.entry("EIGHT_DAYS", 8),
+                Map.entry("NINE_DAYS", 9),
+                Map.entry("TEN_DAYS", 10)
+        );
 
 
         // Inject FedEx API client and properties
@@ -50,6 +67,12 @@ public class FedexAdapter implements DeliveryProviderAdapter {
          // Simple in-memory token cache (for production, consider Redis or database)
         private volatile String accessToken;
         private volatile Instant tokenExpiry;
+
+        @lombok.Value
+        public static class TransitDaysRange {
+            Integer minDays;
+            Integer maxDays;
+        }
 
         @Override
         public ProviderCode getProviderCode() {
@@ -116,8 +139,8 @@ public class FedexAdapter implements DeliveryProviderAdapter {
 
             try {
                 // Validate input
-                if (request == null || request.getPickupAddress() == null 
-                        || request.getDeliveryAddress() == null 
+                if (request == null || request.getPickupAddress() == null
+                        || request.getDeliveryAddress() == null
                         || request.getPackageDetails() == null) {
                     log.error("Missing required fields in CreateOrderRequest");
                     return buildErrorResponse(request, "Missing required order information");
@@ -133,55 +156,64 @@ public class FedexAdapter implements DeliveryProviderAdapter {
 
                 // Step 3: Call FedEx Ship API
                 log.debug("Calling FedEx Ship API for order {}", request.getExternalOrderId());
-                Response<FedexShipmentResponse> response = 
+                Response<FedexShipmentResponse> response =
                         fedexApiClient.createShipment(authHeader, shipmentRequest).execute();
-                log.info("FedEx Ship API Response received for order: {} (HTTP {})", 
+                log.info("FedEx Ship API Response received for order: {} (HTTP {})",
                         request.getExternalOrderId(), response.code());
                 if (!response.isSuccessful()) {
-                    String errorBody = response.errorBody() != null ? 
+                    String errorBody = response.errorBody() != null ?
                             response.errorBody().string() : "no error body";
-                    log.error("FedEx Ship API error for order {}: HTTP {} - {}", 
+                    log.error("FedEx Ship API error for order {}: HTTP {} - {}",
                             request.getExternalOrderId(), response.code(), errorBody);
                     return buildErrorResponse(request, "FedEx Ship API failed: HTTP " + response.code());
                 }
 
                 FedexShipmentResponse body = response.body();
                 if (body == null) {
-                    log.error("FedEx Ship API returned null response for order {}", 
+                    log.error("FedEx Ship API returned null response for order {}",
                             request.getExternalOrderId());
                     return buildErrorResponse(request, "FedEx Ship API returned no response");
                 }
 
-                // Step 5: Check for API errors in response
-                if (body.getErrors() != null && !body.getErrors().isEmpty()) {
-                    String errorMsg = body.getErrors().stream()
-                            .map(e -> e.getMessage() != null ? e.getMessage() : "Unknown error")
-                            .reduce("", (a, b) -> a + "; " + b);
-                    log.error("FedEx Ship API returned errors for order {}: {}", 
-                            request.getExternalOrderId(), errorMsg);
-                    return buildErrorResponse(request, "FedEx error: " + errorMsg);
+                // Step 5: Check for API errors/warnings in response
+                if (body.getOutput() != null && body.getOutput().getAlerts() != null && !body.getOutput().getAlerts().isEmpty()) {
+                    List<String> errorMessages = body.getOutput().getAlerts().stream()
+                            .filter(alert -> alert.getCode() != null && !alert.getCode().toUpperCase().contains("SUCCESS"))
+                            .map(FedexShipmentResponse.Alert::getMessage)
+                            .collect(Collectors.toList());
+
+                    if (!errorMessages.isEmpty()) {
+                        log.warn("FedEx Ship API returned alerts for order {}: {}", request.getExternalOrderId(), String.join("; ", errorMessages));
+                        // Do not return an error immediately, as some alerts are warnings and the shipment might still be created.
+                    }
                 }
 
-                // Step 6: Extract tracking number and shipment details from response
+                // Step 6: Extract tracking number from response
                 String trackingNumber = null;
-                if (body.getOutput() != null 
-                        && body.getOutput().getCompletedShipmentDetail() != null
-                        && body.getOutput().getCompletedShipmentDetail().getPieceResponses() != null
-                        && !body.getOutput().getCompletedShipmentDetail().getPieceResponses().isEmpty()) {
-                    
-                    FedexShipmentResponse.PieceResponse pieceResponse = 
-                            body.getOutput().getCompletedShipmentDetail().getPieceResponses().get(0);
-                    trackingNumber = pieceResponse.getTrackingNumber();
-                    log.debug("Extracted tracking number from FedEx response: {}", trackingNumber);
+                if (body.getOutput() != null && body.getOutput().getTransactionShipments() != null && !body.getOutput().getTransactionShipments().isEmpty()) {
+                    FedexShipmentResponse.TransactionShipment shipment = body.getOutput().getTransactionShipments().get(0);
+
+                    // Prefer master tracking number
+                    trackingNumber = shipment.getMasterTrackingNumber();
+
+                    // Fallback to the tracking number from the first piece response
+                    if (trackingNumber == null && shipment.getPieceResponses() != null && !shipment.getPieceResponses().isEmpty()) {
+                        trackingNumber = shipment.getPieceResponses().get(0).getTrackingNumber();
+                    }
                 }
 
+                // If tracking number is still not found, it's an error
                 if (trackingNumber == null) {
-                    log.error("FedEx Ship API: tracking number not found in response for order {}", 
+                    log.error("FedEx Ship API: tracking number not found in response for order {}",
                             request.getExternalOrderId());
-                    return buildErrorResponse(request, "FedEx did not return tracking number");
+                    String errorMessage = "FedEx did not return a tracking number.";
+                    if (body.getOutput() != null && body.getOutput().getAlerts() != null && !body.getOutput().getAlerts().isEmpty()) {
+                        errorMessage = body.getOutput().getAlerts().get(0).getMessage();
+                    }
+                    return buildErrorResponse(request, errorMessage);
                 }
 
-                log.info("FedEx shipment created successfully. Order: {}, Tracking: {}", 
+                log.info("FedEx shipment created successfully. Order: {}, Tracking: {}",
                         request.getExternalOrderId(), trackingNumber);
 
                 // Step 7: Build and return success response
@@ -194,7 +226,7 @@ public class FedexAdapter implements DeliveryProviderAdapter {
                         .build();
 
             } catch (Exception e) {
-                log.error("Error creating FedEx shipment for order {}", 
+                log.error("Error creating FedEx shipment for order {}",
                         request != null ? request.getExternalOrderId() : "unknown", e);
                 return buildErrorResponse(request, "Exception: " + e.getMessage());
             }
@@ -221,7 +253,7 @@ public class FedexAdapter implements DeliveryProviderAdapter {
                             .city(request.getPickupAddress().getCity())
                             .stateOrProvinceCode(request.getPickupAddress().getStateCode())
                             .postalCode(request.getPickupAddress().getPincode())
-                            .countryCode(request.getPickupAddress().getCountryCode() != null ? 
+                            .countryCode(request.getPickupAddress().getCountryCode() != null ?
                                     request.getPickupAddress().getCountryCode() : "IN")
                             .build())
                     .build();
@@ -237,13 +269,13 @@ public class FedexAdapter implements DeliveryProviderAdapter {
                             .city(request.getDeliveryAddress().getCity())
                             .stateOrProvinceCode(request.getDeliveryAddress().getStateCode())
                             .postalCode(request.getDeliveryAddress().getPincode())
-                            .countryCode(request.getDeliveryAddress().getCountryCode() != null ? 
+                            .countryCode(request.getDeliveryAddress().getCountryCode() != null ?
                                     request.getDeliveryAddress().getCountryCode() : "IN")
                             .build())
                     .build();
 
             // Build shipping charges payment
-            FedexShipmentRequest.ShippingChargesPayment payment = 
+            FedexShipmentRequest.ShippingChargesPayment payment =
                     FedexShipmentRequest.ShippingChargesPayment.builder()
                     .paymentType(paymentType)
                     .payor(FedexShipmentRequest.Payor.builder()
@@ -253,14 +285,6 @@ public class FedexAdapter implements DeliveryProviderAdapter {
                                             .key("")
                                             .build())
                                     .build())
-                            .address(FedexShipmentRequest.Address.builder()
-                                    .streetLines(List.of(request.getPickupAddress().getAddress()))
-                                    .city(request.getPickupAddress().getCity())
-                                    .stateOrProvinceCode(request.getPickupAddress().getStateCode())
-                                    .postalCode(request.getPickupAddress().getPincode())
-                                    .countryCode(request.getPickupAddress().getCountryCode() != null ? 
-                                            request.getPickupAddress().getCountryCode() : "IN")
-                                    .build())
                             .build())
                     .build();
 
@@ -269,14 +293,14 @@ public class FedexAdapter implements DeliveryProviderAdapter {
             if (weightInKg == null || weightInKg <= 0) {
                 weightInKg = 1.0; // Default weight in KG
             }
-            log.debug("Weight converted to KG: {} KG (original: {} {})", 
-                    weightInKg, 
-                    request.getPackageDetails().getWeight() != null ? 
+            log.debug("Weight converted to KG: {} KG (original: {} {})",
+                    weightInKg,
+                    request.getPackageDetails().getWeight() != null ?
                         request.getPackageDetails().getWeight() : request.getPackageDetails().getWeightKg(),
-                    request.getPackageDetails().getWeightUnit() != null ? 
+                    request.getPackageDetails().getWeightUnit() != null ?
                         request.getPackageDetails().getWeightUnit().getCode() : "KG");
 
-            FedexShipmentRequest.PackageLineItem packageItem = 
+            FedexShipmentRequest.PackageLineItem packageItem =
                     FedexShipmentRequest.PackageLineItem.builder()
                     .weight(FedexShipmentRequest.Weight.builder()
                             .units("KG")
@@ -285,7 +309,7 @@ public class FedexAdapter implements DeliveryProviderAdapter {
                     .build();
 
             // Build requested shipment
-            FedexShipmentRequest.RequestedShipment requestedShipment = 
+            FedexShipmentRequest.RequestedShipment requestedShipment =
                     FedexShipmentRequest.RequestedShipment.builder()
                     .shipper(shipper)
                     .recipients(List.of(recipient))
@@ -472,6 +496,66 @@ public class FedexAdapter implements DeliveryProviderAdapter {
             }
         }
 
+        public TransitDaysRange getTransitDaysRange(String pickupPincode, String deliveryPincode, Double weightKg) {
+            try {
+                String token = getValidAccessToken();
+                String authHeader = "Bearer " + token;
+                FedexTransitTimesRequest request = buildTransitTimesRequest(pickupPincode, deliveryPincode, weightKg);
+                Response<FedexTransitTimesResponse> response =
+                        fedexApiClient.getTransitTimes(authHeader, request).execute();
+
+                if (!response.isSuccessful()) {
+                    String errorBody = response.errorBody() != null
+                            ? response.errorBody().string()
+                            : "no error body";
+                    log.warn("FedEx Availability API error: HTTP {} - {}", response.code(), errorBody);
+                    return null;
+                }
+
+                FedexTransitTimesResponse body = response.body();
+                if (body == null
+                        || body.getOutput() == null
+                        || body.getOutput().getTransitTimes() == null
+                        || body.getOutput().getTransitTimes().isEmpty()
+                        || body.getOutput().getTransitTimes().get(0).getTransitTimeDetails() == null
+                        || body.getOutput().getTransitTimes().get(0).getTransitTimeDetails().isEmpty()) {
+                    log.warn("FedEx Availability API returned empty transit details");
+                    return null;
+                }
+
+                for (FedexTransitTimesResponse.TransitTimeDetail detail
+                        : body.getOutput().getTransitTimes().get(0).getTransitTimeDetails()) {
+                    if (detail == null || detail.getCommit() == null || detail.getCommit().getTransitDays() == null) {
+                        continue;
+                    }
+
+                    FedexTransitTimesResponse.TransitDays transitDays = detail.getCommit().getTransitDays();
+                    Integer min = parseTransitTokenToDays(transitDays.getMinimumTransitTime());
+                    Integer max = parseTransitTokenToDays(transitDays.getMaximumTransitTime());
+
+                    if (min != null || max != null) {
+                        if (min == null) {
+                            min = max;
+                        }
+                        if (max == null) {
+                            max = min;
+                        }
+                        return new TransitDaysRange(min, max);
+                    }
+
+                    TransitDaysRange fromDescription = parseTransitDescription(transitDays.getDescription());
+                    if (fromDescription != null) {
+                        return fromDescription;
+                    }
+                }
+            } catch (Exception ex) {
+                log.warn("FedEx Availability API transit lookup failed for {} -> {}",
+                        pickupPincode, deliveryPincode, ex);
+            }
+
+            return null;
+        }
+
         // ===================== PRIVATE HELPER METHODS =====================
 
         /**
@@ -517,16 +601,87 @@ public class FedexAdapter implements DeliveryProviderAdapter {
                 return null;
             }
 
-            FedexRateResponse.Money money =
-                    firstDetail.getRatedShipmentDetails().get(0).getTotalNetCharge();
-
-            if (money == null || money.getAmount() == null) {
+            BigDecimal amount = firstDetail.getRatedShipmentDetails().get(0).getTotalNetCharge();
+            if (amount == null) {
                 log.warn("FedEx Rate API: totalNetCharge missing");
                 return null;
             }
 
-            log.info("FedEx rate retrieved: {} {}", money.getAmount(), money.getCurrency());
-            return money.getAmount();
+            log.info("FedEx rate retrieved: {}", amount);
+            return amount;
+        }
+
+        private FedexTransitTimesRequest buildTransitTimesRequest(String pickupPincode, String deliveryPincode, Double weightKg) {
+            if (weightKg == null || weightKg <= 0) {
+                weightKg = 0.5;
+            }
+
+            FedexTransitTimesRequest.Party shipper = FedexTransitTimesRequest.Party.builder()
+                    .address(FedexTransitTimesRequest.Address.builder()
+                            .postalCode(pickupPincode)
+                            .countryCode("IN")
+                            .build())
+                    .build();
+
+            FedexTransitTimesRequest.Party recipient = FedexTransitTimesRequest.Party.builder()
+                    .address(FedexTransitTimesRequest.Address.builder()
+                            .postalCode(deliveryPincode)
+                            .countryCode("IN")
+                            .build())
+                    .build();
+
+            FedexTransitTimesRequest.RequestedPackageLineItem packageLineItem =
+                    FedexTransitTimesRequest.RequestedPackageLineItem.builder()
+                            .weight(FedexTransitTimesRequest.Weight.builder()
+                                    .units("KG")
+                                    .value(weightKg)
+                                    .build())
+                            .build();
+
+            FedexTransitTimesRequest.RequestedShipment requestedShipment =
+                    FedexTransitTimesRequest.RequestedShipment.builder()
+                            .shipper(shipper)
+                            .recipients(List.of(recipient))
+                            .shipDateStamp(LocalDate.now().toString())
+                            .requestedPackageLineItems(List.of(packageLineItem))
+                            .pickupType("DROPOFF_AT_FEDEX_LOCATION")
+                            .build();
+
+            return FedexTransitTimesRequest.builder()
+                    .requestedShipment(requestedShipment)
+                    .carrierCodes(List.of("FDXE"))
+                    .accountNumber(FedexTransitTimesRequest.AccountNumber.builder()
+                            .value(fedexProperties.getAccountNumber())
+                            .build())
+                    .systemOfMeasureType("METRIC")
+                    .build();
+        }
+
+        private Integer parseTransitTokenToDays(String token) {
+            if (token == null || token.isBlank()) {
+                return null;
+            }
+            return TRANSIT_TIME_TOKEN_TO_DAYS.get(token.toUpperCase(Locale.ROOT));
+        }
+
+        private TransitDaysRange parseTransitDescription(String description) {
+            if (description == null || description.isBlank()) {
+                return null;
+            }
+
+            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("(\\d+)").matcher(description);
+            List<Integer> values = new ArrayList<>();
+            while (matcher.find()) {
+                values.add(Integer.parseInt(matcher.group(1)));
+            }
+
+            if (values.isEmpty()) {
+                return null;
+            }
+            if (values.size() == 1) {
+                return new TransitDaysRange(values.get(0), values.get(0));
+            }
+            return new TransitDaysRange(values.get(0), values.get(1));
         }
 
         /**
@@ -563,12 +718,11 @@ public class FedexAdapter implements DeliveryProviderAdapter {
                     .shipper(FedexRateRequest.Party.builder()
                             .address(originAddress)
                             .build())
-                    .recipients(List.of(
-                            FedexRateRequest.Party.builder()
-                                    .address(destAddress)
-                                    .build()
-                    ))
+                    .recipient(FedexRateRequest.Party.builder()
+                            .address(destAddress)
+                            .build())
                     .pickupType("DROPOFF_AT_FEDEX_LOCATION")
+                    .rateRequestType(List.of("ACCOUNT", "LIST"))
                     .packagingType("YOUR_PACKAGING")
                     .requestedPackageLineItems(List.of(pkg))
                     .build();
@@ -635,7 +789,7 @@ public class FedexAdapter implements DeliveryProviderAdapter {
             if (trackResult.getScanEvents() != null && !trackResult.getScanEvents().isEmpty()) {
                 for (FedexTrackingResponse.ScanEvent scanEvent : trackResult.getScanEvents()) {
                     // Map FedEx status code to our DeliveryStatus
-                    DeliveryStatus status = mapFedexStatus(scanEvent.getEventTypeCode());
+                    DeliveryStatus status = mapFedexStatus(scanEvent.getEventType());
 
                     // Build location string
                     String location = "";
@@ -663,7 +817,7 @@ public class FedexAdapter implements DeliveryProviderAdapter {
             // Also include latest status if not already in scanEvents
             if (trackResult.getLatestStatusDetail() != null) {
                 FedexTrackingResponse.StatusDetail latest = trackResult.getLatestStatusDetail();
-                LocalDateTime latestTimestamp = parseFedexTimestamp(latest.getEventTime());
+                LocalDateTime latestTimestamp = null; // StatusDetail doesn't have timestamp
 
                 // Check if this event is already in the list (avoid duplicates)
                 boolean alreadyExists = events.stream()
@@ -679,7 +833,7 @@ public class FedexAdapter implements DeliveryProviderAdapter {
 
                     String latestDescription = latest.getDescription() != null && !latest.getDescription().isEmpty()
                             ? latest.getDescription()
-                            : (latest.getEventDescription() != null ? latest.getEventDescription() : "Status update");
+                            : "Status update"; // StatusDetail only has description
 
                     events.add(TrackingEventDto.builder()
                             .status(mapFedexStatus(latest.getCode()))
@@ -705,17 +859,31 @@ public class FedexAdapter implements DeliveryProviderAdapter {
          * Looks for ESTIMATED_DELIVERY in dateDetail array.
          */
         private LocalDate extractEstimatedDeliveryDate(FedexTrackingResponse.TrackResult trackResult) {
-            if (trackResult.getDateDetail() != null && !trackResult.getDateDetail().isEmpty()) {
-                for (FedexTrackingResponse.DateDetail dateDetail : trackResult.getDateDetail()) {
-                    if ("ESTIMATED_DELIVERY".equals(dateDetail.getType()) && dateDetail.getDate() != null) {
+            if (trackResult.getServiceCommitMessage() != null
+                    && "ESTIMATED_DELIVERY_DATE_UNAVAILABLE".equals(trackResult.getServiceCommitMessage().getType())) {
+                return null; // No date available
+            }
+
+            // Try to get from estimatedDeliveryTimeWindow
+            if (trackResult.getEstimatedDeliveryTimeWindow() != null && trackResult.getEstimatedDeliveryTimeWindow().getWindow() != null) {
+                String begins = trackResult.getEstimatedDeliveryTimeWindow().getWindow().getBegins();
+                if (begins != null) {
+                    try {
+                        return parseFedexTimestamp(begins).toLocalDate();
+                    } catch (Exception e) {
+                        log.warn("Failed to parse estimated delivery date from time window: {}", begins, e);
+                    }
+                }
+            }
+
+            // Fallback to dateAndTimes array
+            if (trackResult.getDateAndTimes() != null && !trackResult.getDateAndTimes().isEmpty()) {
+                for (FedexTrackingResponse.DateAndTime dateDetail : trackResult.getDateAndTimes()) {
+                    if ("ESTIMATED_DELIVERY".equals(dateDetail.getType()) && dateDetail.getDateTime() != null) {
                         try {
-                            // Parse ISO date string (e.g., "2024-01-15" or "2024-01-15T00:00:00")
-                            String dateStr = dateDetail.getDate();
-                            if (dateStr.length() >= 10) {
-                                return LocalDate.parse(dateStr.substring(0, 10));
-                            }
+                            return parseFedexTimestamp(dateDetail.getDateTime()).toLocalDate();
                         } catch (Exception e) {
-                            log.warn("Failed to parse estimated delivery date: {}", dateDetail.getDate(), e);
+                            log.warn("Failed to parse estimated delivery date from dateAndTimes: {}", dateDetail.getDateTime(), e);
                         }
                     }
                 }

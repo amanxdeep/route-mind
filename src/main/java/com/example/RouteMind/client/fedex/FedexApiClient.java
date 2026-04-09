@@ -5,6 +5,8 @@ import com.example.RouteMind.client.fedex.dto.tracking.FedexTrackingResponse;
 import com.example.RouteMind.client.fedex.dto.FedexOAuthResponse;
 import com.example.RouteMind.client.fedex.dto.serviceability.FedexRateRequest;
 import com.example.RouteMind.client.fedex.dto.serviceability.FedexRateResponse;
+import com.example.RouteMind.client.fedex.dto.serviceability.FedexTransitTimesRequest;
+import com.example.RouteMind.client.fedex.dto.serviceability.FedexTransitTimesResponse;
 import com.example.RouteMind.client.fedex.dto.shipment.FedexShipmentRequest;
 import com.example.RouteMind.client.fedex.dto.shipment.FedexShipmentResponse;
 import retrofit2.Call;
@@ -40,7 +42,7 @@ public interface FedexApiClient {
     );
 
     /**
-     * Rate API: Get shipping rates / serviceability
+     * Rate and Transit Times API.
      *
      * POST https://apis-sandbox.fedex.com/rate/v1/rates/quotes
      * Headers:
@@ -51,6 +53,17 @@ public interface FedexApiClient {
     Call<FedexRateResponse> getRates(
             @Header("Authorization") String authHeader,
             @Body FedexRateRequest request
+    );
+
+    /**
+     * Service Availability API.
+     *
+     * POST https://apis-sandbox.fedex.com/availability/v1/transittimes
+     */
+    @POST("/availability/v1/transittimes")
+    Call<FedexTransitTimesResponse> getTransitTimes(
+            @Header("Authorization") String authHeader,
+            @Body FedexTransitTimesRequest request
     );
 
     @POST("/track/v1/trackingnumbers")

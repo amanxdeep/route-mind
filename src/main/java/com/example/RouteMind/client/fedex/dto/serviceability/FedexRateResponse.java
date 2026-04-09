@@ -11,6 +11,9 @@ import java.util.List;
 @Data
 public class FedexRateResponse {
 
+    @JsonProperty("transactionId")
+    private String transactionId;
+
     @JsonProperty("output")
     private Output output;
 
@@ -25,22 +28,37 @@ public class FedexRateResponse {
         @JsonProperty("serviceType")
         private String serviceType;
 
+        @JsonProperty("serviceName")
+        private String serviceName;
+
         @JsonProperty("ratedShipmentDetails")
         private List<RatedShipmentDetail> ratedShipmentDetails;
+
+        @JsonProperty("operationalDetail")
+        private OperationalDetail operationalDetail;
     }
 
     @Data
     public static class RatedShipmentDetail {
-        @JsonProperty("totalNetCharge")
-        private Money totalNetCharge;
-    }
+        @JsonProperty("rateType")
+        private String rateType;
 
-    @Data
-    public static class Money {
-        @JsonProperty("amount")
-        private BigDecimal amount;
+        @JsonProperty("totalNetCharge")
+        private BigDecimal totalNetCharge;
 
         @JsonProperty("currency")
         private String currency;
+    }
+
+    @Data
+    public static class OperationalDetail {
+        @JsonProperty("transitTime")
+        private String transitTime;
+
+        @JsonProperty("deliveryDay")
+        private String deliveryDay;
+
+        @JsonProperty("commitDate")
+        private String commitDate;
     }
 }

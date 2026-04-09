@@ -4,7 +4,9 @@ import com.example.RouteMind.dto.Request.ServiceabilityRequest;
 import com.example.RouteMind.dto.Response.DeliveryOptionDto;
 import com.example.RouteMind.dto.Response.ServiceabilityResponse;
 import com.example.RouteMind.adapter.DeliveryProviderAdapter;
+import com.example.RouteMind.adapter.implementation.FedexAdapter;
 import com.example.RouteMind.entity.Serviceability;
+import com.example.RouteMind.enums.ProviderCode;
 import com.example.RouteMind.enums.ProviderTag;
 import com.example.RouteMind.factory.ProviderFactory;
 import com.example.RouteMind.repository.RateCardRepository;
@@ -83,12 +85,29 @@ public class ServiceabilityService {
                 request.getDeliveryPincode(),
                 weight
         );
+        Integer etaDaysMin = service.getDeliveryDaysMin();
+        Integer etaDaysMax = service.getDeliveryDaysMax();
+
+        // Prefer live ETA from FedEx availability API; fallback to DB ETA values.
+        if (service.getProviderCode() == ProviderCode.FEDEX && adapter instanceof FedexAdapter fedexAdapter) {
+            FedexAdapter.TransitDaysRange transitDaysRange =
+                    fedexAdapter.getTransitDaysRange(
+                            request.getPickupPincode(),
+                            request.getDeliveryPincode(),
+                            weight
+                    );
+            if (transitDaysRange != null) {
+                etaDaysMin = transitDaysRange.getMinDays();
+                etaDaysMax = transitDaysRange.getMaxDays();
+            }
+        }
+
         return DeliveryOptionDto.builder()
                 .provider(service.getProviderCode())
                 .providerName(service.getProviderCode().getDisplayName())
                 .cost(cost)
-                .etaDaysMin(service.getDeliveryDaysMin())
-                .etaDaysMax(service.getDeliveryDaysMax())
+                .etaDaysMin(etaDaysMin)
+                .etaDaysMax(etaDaysMax)
                 .codAvailable(service.getIsCodAvailable())
                 .tags(new ArrayList<>())
                 .build();
