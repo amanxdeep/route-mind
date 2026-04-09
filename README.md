@@ -15,7 +15,6 @@ As a computer science graduate seeking an internship, this project demonstrates 
 - **💰 Cost Estimation**: Calculate shipping costs based on weight, distance, service type, and COD charges using provider rate cards.
 - **🏢 Multi-Provider Support**: Integrated adapters for BlueDart, DTDC, and FedEx with extensible architecture for additional providers.
 - **🔗 Webhook Integration**: Receive real-time status updates from providers via webhooks and update internal tracking events.
-- **⚡ Caching**: Redis-based caching for improved performance on frequently accessed data.
 
 ### Technical Features
 - **🌐 RESTful API**: Well-structured REST endpoints with consistent response formats.
@@ -32,7 +31,6 @@ As a computer science graduate seeking an internship, this project demonstrates 
 - **☕ Language**: Java 21
 - **🌱 Framework**: Spring Boot 4.0.1
 - **🗄️ Database**: MySQL
-- **⚡ Caching**: Redis
 - **🔨 Build Tool**: Maven
 - **📖 Documentation**: SpringDoc OpenAPI (Swagger)
 - **🔄 Object Mapping**: MapStruct
@@ -166,7 +164,6 @@ RouteMind follows a layered architecture with clear separation of concerns:
 - ☕ Java 21 or higher
 - 🔨 Maven 3.6+
 - 🗄️ MySQL 8.0+
-- ⚡ Redis (optional, for caching)
 
 ### Steps
 1. **📥 Clone the repository**:
