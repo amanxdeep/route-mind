@@ -1,4 +1,4 @@
-# RouteMind
+# 🚚 RouteMind
 
 ## Overview
 
@@ -6,39 +6,39 @@ RouteMind is an intermediate delivery integration microservice designed for e-co
 
 As a computer science graduate seeking an internship, this project demonstrates proficiency in Java, Spring Boot, microservices architecture, API integration, database management, and software design patterns.
 
-## Features
+## ✨ Features
 
 ### Core Functionality
-- **Order Management**: Create and retrieve orders with external order IDs for integration with e-commerce platforms.
-- **Shipment Tracking**: Real-time tracking of shipments across multiple providers with historical event logging.
-- **Serviceability Checks**: Verify if delivery is possible between pickup and delivery locations, providing available options.
-- **Cost Estimation**: Calculate shipping costs based on weight, distance, service type, and COD charges using provider rate cards.
-- **Multi-Provider Support**: Integrated adapters for BlueDart, DTDC, and FedEx with extensible architecture for additional providers.
-- **Webhook Integration**: Receive real-time status updates from providers via webhooks and update internal tracking events.
-- **Caching**: Redis-based caching for improved performance on frequently accessed data.
+- **📦 Order Management**: Create and retrieve orders with external order IDs for integration with e-commerce platforms.
+- **📍 Shipment Tracking**: Real-time tracking of shipments across multiple providers with historical event logging.
+- **🔍 Serviceability Checks**: Verify if delivery is possible between pickup and delivery locations, providing available options.
+- **💰 Cost Estimation**: Calculate shipping costs based on weight, distance, service type, and COD charges using provider rate cards.
+- **🏢 Multi-Provider Support**: Integrated adapters for BlueDart, DTDC, and FedEx with extensible architecture for additional providers.
+- **🔗 Webhook Integration**: Receive real-time status updates from providers via webhooks and update internal tracking events.
+- **⚡ Caching**: Redis-based caching for improved performance on frequently accessed data.
 
 ### Technical Features
-- **RESTful API**: Well-structured REST endpoints with consistent response formats.
-- **API Documentation**: Swagger/OpenAPI documentation for easy API exploration and testing.
-- **Database Integration**: JPA-based persistence with MySQL for orders, shipments, tracking events, and rate cards.
-- **Object Mapping**: MapStruct for type-safe and performant object-to-object mapping.
-- **Error Handling**: Comprehensive exception handling with custom error responses.
-- **Logging**: Structured logging throughout the application for debugging and monitoring.
-- **Validation**: Input validation using Bean Validation annotations.
-- **Transaction Management**: Proper transaction handling for data consistency.
+- **🌐 RESTful API**: Well-structured REST endpoints with consistent response formats.
+- **📚 API Documentation**: Swagger/OpenAPI documentation for easy API exploration and testing.
+- **🗄️ Database Integration**: JPA-based persistence with MySQL for orders, shipments, tracking events, and rate cards.
+- **🔄 Object Mapping**: MapStruct for type-safe and performant object-to-object mapping.
+- **🛡️ Error Handling**: Comprehensive exception handling with custom error responses.
+- **📝 Logging**: Structured logging throughout the application for debugging and monitoring.
+- **✅ Validation**: Input validation using Bean Validation annotations.
+- **🔄 Transaction Management**: Proper transaction handling for data consistency.
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-- **Language**: Java 21
-- **Framework**: Spring Boot 4.0.1
-- **Database**: MySQL
-- **Caching**: Redis
-- **Build Tool**: Maven
-- **Documentation**: SpringDoc OpenAPI (Swagger)
-- **Object Mapping**: MapStruct
-- **HTTP Client**: Retrofit with OkHttp
-- **Reactive Programming**: Spring WebFlux (WebClient)
-- **Other Libraries**:
+- **☕ Language**: Java 21
+- **🌱 Framework**: Spring Boot 4.0.1
+- **🗄️ Database**: MySQL
+- **⚡ Caching**: Redis
+- **🔨 Build Tool**: Maven
+- **📖 Documentation**: SpringDoc OpenAPI (Swagger)
+- **🔄 Object Mapping**: MapStruct
+- **🌐 HTTP Client**: Retrofit with OkHttp
+- **⚛️ Reactive Programming**: Spring WebFlux (WebClient)
+- **📚 Other Libraries**:
   - Lombok (for reducing boilerplate code)
   - Spring Boot Starter Web (for REST APIs)
   - Spring Boot Starter Data JPA (for database operations)
@@ -141,7 +141,7 @@ RouteMind follows a layered architecture with clear separation of concerns:
 - **DTO Pattern**: For data transfer between layers
 - **Builder Pattern**: For constructing complex objects
 
-## API Endpoints
+## 🔌 API Endpoints
 
 ### Order Management
 - `POST /api/v1/orders` - Create a new order
@@ -160,42 +160,42 @@ RouteMind follows a layered architecture with clear separation of concerns:
 - `POST /api/v1/webhooks/dtdc` - Receive DTDC status updates
 - `POST /api/v1/webhooks/fedex` - Receive FedEx status updates
 
-## Setup and Installation
+## 🚀 Setup and Installation
 
 ### Prerequisites
-- Java 21 or higher
-- Maven 3.6+
-- MySQL 8.0+
-- Redis (optional, for caching)
+- ☕ Java 21 or higher
+- 🔨 Maven 3.6+
+- 🗄️ MySQL 8.0+
+- ⚡ Redis (optional, for caching)
 
 ### Steps
-1. **Clone the repository**:
+1. **📥 Clone the repository**:
    ```bash
    git clone https://github.com/amanxdeep/route-mind.git
    cd route-mind
    ```
 
-2. **Configure the database**:
+2. **⚙️ Configure the database**:
    - Create a MySQL database named `routemind_db`
    - Update `src/main/resources/application.yml` with your database credentials
 
-3. **Configure FedEx API** (optional):
+3. **🔧 Configure FedEx API** (optional):
    - Obtain FedEx API credentials
    - Update the `fedex` section in `application.yml`
 
-4. **Build the application**:
+4. **🔨 Build the application**:
    ```bash
    ./mvnw clean compile
    ```
    
    Note: The project uses MapStruct for object mapping, which requires annotation processing during compilation. The Maven compiler plugin is configured to include Lombok and MapStruct processors.
 
-5. **Run the application**:
+5. **▶️ Run the application**:
    ```bash
    ./mvnw spring-boot:run
    ```
 
-6. **Access the application**:
+6. **🌐 Access the application**:
    - API Base URL: `http://localhost:8080/route-mind`
    - Swagger Documentation: `http://localhost:8080/route-mind/swagger-ui.html`
 
@@ -218,21 +218,21 @@ The application uses the following main entities:
 - **Serviceability**: Delivery availability by pincode
 - **DeliveryProvider**: Provider configuration
 
-## Testing
+## 🧪 Testing
 
 Run the tests using Maven:
 ```bash
 ./mvnw test
 ```
 
-## Monitoring
+## 📊 Monitoring
 
 The application includes Spring Boot Actuator for monitoring:
 - Health checks: `/actuator/health`
 - Metrics: `/actuator/metrics`
 - Info: `/actuator/info`
 
-## Future Enhancements
+## 🔮 Future Enhancements
 
 - Complete implementation of BlueDart and DTDC API integrations
 - Add more delivery providers
@@ -242,7 +242,7 @@ The application includes Spring Boot Actuator for monitoring:
 - Add message queuing for better webhook handling
 - Implement caching strategies for improved performance
 
-## Contributing
+## 🤝 Contributing
 
 This project demonstrates key software engineering concepts suitable for internship applications:
 - Clean architecture and separation of concerns
