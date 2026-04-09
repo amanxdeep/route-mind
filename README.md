@@ -261,5 +261,5 @@ This project is for educational and portfolio purposes.
 
 **Author**: Aman Deep  
 **Project**: RouteMind - Delivery Integration Microservice  
-**Technologies**: Java, Spring Boot, MySQL, Redis</content>
+**Technologies**: Java, Spring Boot, MySQL</content>
 <parameter name="filePath">/workspaces/route-mind/README.md

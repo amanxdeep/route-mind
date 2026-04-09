@@ -64,7 +64,7 @@ public class FedexAdapter implements DeliveryProviderAdapter {
         private final FedexApiClient fedexApiClient;
         private final FedexProperties fedexProperties;
 
-         // Simple in-memory token cache (for production, consider Redis or database)
+         // Simple in-memory token cache 
         private volatile String accessToken;
         private volatile Instant tokenExpiry;
 
