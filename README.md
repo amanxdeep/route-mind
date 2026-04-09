@@ -21,6 +21,7 @@ As a computer science graduate seeking an internship, this project demonstrates 
 - **RESTful API**: Well-structured REST endpoints with consistent response formats.
 - **API Documentation**: Swagger/OpenAPI documentation for easy API exploration and testing.
 - **Database Integration**: JPA-based persistence with MySQL for orders, shipments, tracking events, and rate cards.
+- **Object Mapping**: MapStruct for type-safe and performant object-to-object mapping.
 - **Error Handling**: Comprehensive exception handling with custom error responses.
 - **Logging**: Structured logging throughout the application for debugging and monitoring.
 - **Validation**: Input validation using Bean Validation annotations.
@@ -34,6 +35,9 @@ As a computer science graduate seeking an internship, this project demonstrates 
 - **Caching**: Redis
 - **Build Tool**: Maven
 - **Documentation**: SpringDoc OpenAPI (Swagger)
+- **Object Mapping**: MapStruct
+- **HTTP Client**: Retrofit with OkHttp
+- **Reactive Programming**: Spring WebFlux (WebClient)
 - **Other Libraries**:
   - Lombok (for reducing boilerplate code)
   - Spring Boot Starter Web (for REST APIs)
@@ -97,7 +101,7 @@ src/
 │   │       │   └── RouteMindException.java
 │   │       ├── factory/                           # Factory pattern for adapters
 │   │       │   └── ProviderFactory.java
-│   │       ├── mapper/                            # Object mapping utilities
+│   │       ├── mapper/                            # Object mapping utilities using MapStruct
 │   │       │   └── AppModelMapper.java
 │   │       ├── repository/                        # JPA repositories
 │   │       │   ├── DeliveryProviderRepository.java
@@ -183,6 +187,8 @@ RouteMind follows a layered architecture with clear separation of concerns:
    ```bash
    ./mvnw clean compile
    ```
+   
+   Note: The project uses MapStruct for object mapping, which requires annotation processing during compilation. The Maven compiler plugin is configured to include Lombok and MapStruct processors.
 
 5. **Run the application**:
    ```bash
