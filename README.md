@@ -43,6 +43,54 @@ As a computer science graduate seeking an internship, this project demonstrates 
   - Spring Boot Starter Validation (for input validation)
   - Spring Boot Starter Actuator (for monitoring and health checks)
 
+### Technology Stack Diagram
+
+```mermaid
+graph TB
+    subgraph Language["Language & Runtime"]
+        Java["Java 21"]
+    end
+    
+    subgraph Framework["Framework & Web"]
+        SpringBoot["Spring Boot 4.0.1"]
+        SpringWeb["Spring Web"]
+        SpringJPA["Spring Data JPA"]
+        SpringValidation["Spring Validation"]
+        SpringActuator["Spring Actuator"]
+    end
+    
+    subgraph Database["Database"]
+        MySQL["MySQL Database"]
+        JPA["JPA ORM"]
+    end
+    
+    subgraph ApiIntegration["API Integration"]
+        Retrofit["Retrofit HTTP Client"]
+        OkHttp["OkHttp"]
+        WebClient["Spring WebClient"]
+    end
+    
+    subgraph Utilities["Utilities & Libraries"]
+        Lombok["Lombok"]
+        MapStruct["MapStruct"]
+        Swagger["SpringDoc OpenAPI<br/>Swagger UI"]
+    end
+    
+    Java -->|runs| SpringBoot
+    SpringBoot -->|uses| SpringWeb
+    SpringBoot -->|uses| SpringJPA
+    SpringBoot -->|uses| SpringValidation
+    SpringBoot -->|uses| SpringActuator
+    SpringJPA -->|access| JPA
+    JPA -->|connect| MySQL
+    SpringBoot -->|uses| Retrofit
+    Retrofit -->|uses| OkHttp
+    SpringBoot -->|uses| WebClient
+    SpringBoot -->|uses| Lombok
+    SpringBoot -->|uses| MapStruct
+    SpringBoot -->|documents| Swagger
+```
+
 ## Project Structure
 
 ```
@@ -139,6 +187,137 @@ RouteMind follows a layered architecture with clear separation of concerns:
 - **DTO Pattern**: For data transfer between layers
 - **Builder Pattern**: For constructing complex objects
 
+### System Architecture Diagram
+
+```mermaid
+graph TB
+    subgraph Client["Client Layer"]
+        WebApp["E-Commerce Web Application"]
+    end
+    
+    subgraph API["API Gateway Layer"]
+        REST["REST API Endpoints"]
+    end
+    
+    subgraph Controllers["Controller Layer"]
+        OrderCtrl["OrderController"]
+        ServiceCtrl["ServiceabilityController"]
+        TrackCtrl["TrackingController"]
+        WebhookCtrl["WebhookController"]
+    end
+    
+    subgraph Services["Business Logic Layer"]
+        OrderSvc["OrderService"]
+        ServiceabilitySvc["ServiceabilityService"]
+        TrackingSvc["TrackingService"]
+        EstimationSvc["EstimationService"]
+        DataAccessSvc["OrderDataAccessService"]
+    end
+    
+    subgraph Adapters["Adapter Pattern Layer"]
+        AdapterInterface["DeliveryProviderAdapter<br/>Interface"]
+        BlueDartImpl["BlueDartAdapter"]
+        DtdcImpl["DtdcAdapter"]
+        FedexImpl["FedexAdapter"]
+    end
+    
+    subgraph ExternalAPIs["External APIs"]
+        BlueDartAPI["BlueDart API"]
+        DtdcAPI["DTDC API"]
+        FedexAPI["FedEx API"]
+    end
+    
+    subgraph Persistence["Data Persistence Layer"]
+        Repos["Repository Layer<br/>JPA Repositories"]
+        MySQL["MySQL Database"]
+    end
+    
+    WebApp -->|HTTP| REST
+    REST --> Controllers
+    
+    OrderCtrl --> OrderSvc
+    ServiceCtrl --> ServiceabilitySvc
+    TrackCtrl --> TrackingSvc
+    WebhookCtrl --> TrackingSvc
+    
+    OrderSvc --> AdapterInterface
+    ServiceabilitySvc --> AdapterInterface
+    TrackingSvc --> AdapterInterface
+    EstimationSvc --> Repos
+    DataAccessSvc --> Repos
+    
+    AdapterInterface --> BlueDartImpl
+    AdapterInterface --> DtdcImpl
+    AdapterInterface --> FedexImpl
+    
+    BlueDartImpl --> BlueDartAPI
+    DtdcImpl --> DtdcAPI
+    FedexImpl --> FedexAPI
+    
+    OrderSvc --> DataAccessSvc
+    TrackingSvc --> DataAccessSvc
+    Repos --> MySQL
+```
+
+### Multi-Provider Adapter Pattern
+
+```mermaid
+graph TB
+    subgraph Client["Service Layer"]
+        OrderService["OrderService<br/>ServiceabilityService<br/>TrackingService"]
+    end
+    
+    subgraph AdapterPattern["Adapter Pattern Implementation"]
+        AdapterInterface["<<Interface>><br/>DeliveryProviderAdapter<br/>---<br/>+ checkServiceability()<br/>+ calculateRate()<br/>+ createShipment()<br/>+ trackShipment()<br/>+ cancelShipment()"]
+        
+        subgraph Implementations["Concrete Implementations"]
+            BlueDart["BlueDartAdapter<br/>---<br/>+ getProviderCode()<br/>+ checkServiceability()<br/>+ calculateRate()<br/>+ createShipment()<br/>+ trackShipment()"]
+            Dtdc["DtdcAdapter<br/>---<br/>+ getProviderCode()<br/>+ checkServiceability()<br/>+ calculateRate()<br/>+ createShipment()<br/>+ trackShipment()"]
+            Fedex["FedexAdapter<br/>---<br/>+ getProviderCode()<br/>+ checkServiceability()<br/>+ calculateRate()<br/>+ createShipment()<br/>+ trackShipment()"]
+        end
+    end
+    
+    subgraph Factory["Factory Pattern"]
+        ProviderFactory["ProviderFactory<br/>---<br/>+ getAdapter(ProviderCode)<br/>Returns appropriate adapter<br/>based on provider code"]
+    end
+    
+    OrderService -->|uses| ProviderFactory
+    ProviderFactory -->|instantiates| AdapterInterface
+    AdapterInterface -->|implements| BlueDart
+    AdapterInterface -->|implements| Dtdc
+    AdapterInterface -->|implements| Fedex
+    
+    BlueDart -.->|calls| BlueDartAPI["BlueDart API"]
+    Dtdc -.->|calls| DtdcAPI["DTDC API"]
+    Fedex -.->|calls| FedexAPI["FedEx API"]
+```
+
+### Database Schema Diagram
+
+```mermaid
+graph TB
+    Orders["ORDERS<br/>---<br/>id (PK)<br/>external_order_id<br/>status<br/>pickup_address<br/>delivery_address<br/>created_at<br/>updated_at"]
+    
+    Shipments["SHIPMENTS<br/>---<br/>id (PK)<br/>order_id (FK)<br/>provider_id (FK)<br/>tracking_id<br/>status<br/>estimated_delivery<br/>actual_delivery"]
+    
+    TrackingEvents["TRACKING_EVENTS<br/>---<br/>id (PK)<br/>shipment_id (FK)<br/>status<br/>location<br/>description<br/>timestamp<br/>source"]
+    
+    Providers["DELIVERY_PROVIDERS<br/>---<br/>id (PK)<br/>provider_code<br/>provider_tag<br/>name<br/>api_key<br/>api_secret"]
+    
+    RateCards["RATE_CARDS<br/>---<br/>id (PK)<br/>provider_id (FK)<br/>service_type<br/>origin<br/>destination<br/>base_price<br/>weight_slab<br/>price_per_kg"]
+    
+    Serviceability["SERVICEABILITY<br/>---<br/>id (PK)<br/>provider_id (FK)<br/>origin<br/>destination<br/>is_serviceable<br/>service_types"]
+    
+    OrderDimensions["ORDER_DIMENSIONS<br/>---<br/>id (PK)<br/>order_id (FK)<br/>length<br/>width<br/>height<br/>weight<br/>weight_unit"]
+    
+    Orders -->|1:N| Shipments
+    Shipments -->|N:1| Providers
+    Shipments -->|1:N| TrackingEvents
+    Providers -->|1:N| RateCards
+    Providers -->|1:N| Serviceability
+    Orders -->|1:1| OrderDimensions
+```
+
 ## 🔌 API Endpoints
 
 ### Order Management
@@ -157,6 +336,35 @@ RouteMind follows a layered architecture with clear separation of concerns:
 - `POST /api/v1/webhooks/delhivery` - Receive Delhivery status updates
 - `POST /api/v1/webhooks/dtdc` - Receive DTDC status updates
 - `POST /api/v1/webhooks/fedex` - Receive FedEx status updates
+
+### API Endpoints Overview Diagram
+
+```mermaid
+graph TB
+    subgraph Container["RouteMind API v1"]
+        subgraph Orders["Orders API<br/>/api/v1/orders"]
+            Create["POST /<br/>Create Order"]
+            GetById["GET /{id}<br/>Get by ID"]
+            GetByExtId["GET /external/{extId}<br/>Get by External ID"]
+        end
+        
+        subgraph Serviceability["Serviceability API<br/>/api/v1/serviceability"]
+            CheckService["POST /check<br/>Check if serviceable"]
+        end
+        
+        subgraph Tracking["Tracking API<br/>/api/v1/tracking"]
+            Track["GET /{trackingId}<br/>Track Shipment"]
+        end
+        
+        subgraph Webhooks["Webhooks<br/>/api/v1/webhooks"]
+            ShipmentStatus["POST /shipment-status<br/>Handle Status Update"]
+            Delivery["POST /delivery<br/>Handle Delivery Update"]
+        end
+    end
+    
+    Client["E-Commerce App"] -->|REST| Container
+    Providers["Delivery Providers"] -->|Webhooks| Webhooks
+```
 
 ## 🚀 Setup and Installation
 
