@@ -215,13 +215,6 @@ The application uses the following main entities:
 - **Serviceability**: Delivery availability by pincode
 - **DeliveryProvider**: Provider configuration
 
-## 🧪 Testing
-
-Run the tests using Maven:
-```bash
-./mvnw test
-```
-
 ## 📊 Monitoring
 
 The application includes Spring Boot Actuator for monitoring:
@@ -256,7 +249,21 @@ This project is for educational and portfolio purposes.
 
 ---
 
-**Author**: Aman Deep  
-**Project**: RouteMind - Delivery Integration Microservice  
-**Technologies**: Java, Spring Boot, MySQL</content>
-<parameter name="filePath">/workspaces/route-mind/README.md
+## 👤 Author
+
+**Amandeep Singh**  
+Computer Science Graduate | Backend Developer | Microservices Enthusiast
+
+---
+
+## 📞 Support
+
+For questions or issues, please:
+- Check the troubleshooting section
+- Review application logs
+- Create an issue on GitHub
+
+---
+
+**Last Updated:** April 2026  
+**Current Version:** 0.0.1-SNAPSHOT
