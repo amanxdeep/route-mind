@@ -459,7 +459,7 @@ This project is for educational and portfolio purposes.
 
 ## 👤 Author
 
-**Amandeep Singh**  
+**Amandeep Kumar**  
 Computer Science Graduate | Backend Developer | Microservices Enthusiast
 
 ---
