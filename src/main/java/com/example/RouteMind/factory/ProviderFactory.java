@@ -31,7 +31,7 @@ public class ProviderFactory {
     /**
      * Get adapter for a specific provider.
      *
-     * @param code Provider code (BLUEDART, FEDEX, DTDC)
+     * @param code Provider code (BLUEDART, FEDEX, or the DTDC sample/mock placeholder)
      * @return The adapter for that provider
      * @throws IllegalArgumentException if provider not found
      */

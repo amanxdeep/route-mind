@@ -2,6 +2,8 @@
 
 This document contains comprehensive Mermaid diagrams for the RouteMind system architecture.
 
+DTDC is referenced solely as an illustrative courier provider. Its adapter is SAMPLE / MOCK ONLY, makes no external calls, and its webhook is a non-functional placeholder.
+
 ## 1. High-Level System Architecture
 
 ```mermaid
@@ -32,13 +34,12 @@ graph TB
     subgraph Adapters["Adapter Pattern Layer"]
         AdapterInterface["DeliveryProviderAdapter<br/>Interface"]
         BlueDartImpl["BlueDartAdapter"]
-        DtdcImpl["DtdcAdapter"]
+        DtdcImpl["DtdcAdapter<br/>SAMPLE / MOCK ONLY"]
         FedexImpl["FedexAdapter"]
     end
     
     subgraph ExternalAPIs["External APIs"]
         BlueDartAPI["BlueDart API"]
-        DtdcAPI["DTDC API"]
         FedexAPI["FedEx API"]
     end
     
@@ -66,7 +67,6 @@ graph TB
     AdapterInterface --> FedexImpl
     
     BlueDartImpl --> BlueDartAPI
-    DtdcImpl --> DtdcAPI
     FedexImpl --> FedexAPI
     
     OrderSvc --> DataAccessSvc
@@ -83,7 +83,7 @@ sequenceDiagram
     participant Service as OrderService
     participant Factory as ProviderFactory
     participant Adapter as DeliveryProviderAdapter
-    participant API as Provider API
+    participant API as External Provider API
     participant DataAccess as OrderDataAccessService
     participant DB as MySQL Database
 
@@ -106,8 +106,12 @@ sequenceDiagram
     
     Service->>Adapter: createShipment(request)
     activate Adapter
-    Adapter->>API: POST Create Shipment
-    API-->>Adapter: OrderResponse (with AWB/Tracking ID)
+    alt Provider integration is implemented
+        Adapter->>API: POST Create Shipment
+        API-->>Adapter: OrderResponse (with AWB/Tracking ID)
+    else DTDC illustrative placeholder
+        Adapter-->>Service: SAMPLE / MOCK DATA response; no API call
+    end
     deactivate Adapter
     
     Service->>DataAccess: saveShipmentAndMarkOrder(orderId, shipment)
@@ -136,7 +140,7 @@ graph TB
         
         subgraph Implementations["Concrete Implementations"]
             BlueDart["BlueDartAdapter<br/>---<br/>+ getProviderCode()<br/>+ checkServiceability()<br/>+ calculateRate()<br/>+ createShipment()<br/>+ trackShipment()"]
-            Dtdc["DtdcAdapter<br/>---<br/>+ getProviderCode()<br/>+ checkServiceability()<br/>+ calculateRate()<br/>+ createShipment()<br/>+ trackShipment()"]
+            Dtdc["DtdcAdapter<br/>SAMPLE / MOCK ONLY<br/>No external calls"]
             Fedex["FedexAdapter<br/>---<br/>+ getProviderCode()<br/>+ checkServiceability()<br/>+ calculateRate()<br/>+ createShipment()<br/>+ trackShipment()"]
         end
     end
@@ -152,7 +156,6 @@ graph TB
     AdapterInterface -->|implements| Fedex
     
     BlueDart -.->|calls| BlueDartAPI["BlueDart API"]
-    Dtdc -.->|calls| DtdcAPI["DTDC API"]
     Fedex -.->|calls| FedexAPI["FedEx API"]
 ```
 
@@ -223,7 +226,7 @@ graph LR
     DataAccess["OrderDataAccessService"]
     Repositories["Repositories<br/>OrderRepository<br/>ShipmentRepository<br/>TrackingEventRepository<br/>DeliveryProviderRepository<br/>RateCardRepository<br/>ServiceabilityRepository"]
     
-    AdapterLayer["Adapter Layer<br/>ProviderFactory<br/>DeliveryProviderAdapter<br/>BlueDart/Dtdc/Fedex"]
+    AdapterLayer["Adapter Layer<br/>ProviderFactory<br/>DeliveryProviderAdapter<br/>BlueDart/DTDC sample/FedEx"]
     
     Mapper["AppModelMapper<br/>MapStruct"]
     Configuration["Configuration<br/>ClientConfiguration<br/>FedexProperties"]
@@ -317,7 +320,7 @@ graph TB
 ## Architecture Patterns Used
 
 ### 1. **Adapter Pattern**
-- Allows integration with multiple delivery providers (BlueDart, DTDC, FedEx)
+- Preserves a generic multi-provider architecture; DTDC remains an illustrative sample/mock placeholder
 - Each provider has its own adapter implementation
 - Services interact with adapters through a common interface
 

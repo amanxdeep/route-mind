@@ -9,6 +9,7 @@ import com.example.RouteMind.repository.ShipmentRepository;
 import com.example.RouteMind.repository.TrackingEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -63,23 +64,16 @@ public class WebhookController {
         return GenericResponse.success("OK");
     }
     /**
-     * POST /api/v1/webhooks/dtdc
-     * Receive status update from DTDC.
+     * SAMPLE / MOCK ONLY: this illustrative endpoint does not process webhook payloads.
      */
     @PostMapping(ApiConstants.WEBHOOK_DTDC)
+    @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
     public GenericResponse<String> dtdcWebhook(
             @RequestBody Map<String, Object> payload) {
-
-        log.info("DTDC webhook received: {}", payload);
-
-        String trackingId = (String) payload.get("consignment_no");
-        String statusCode = (String) payload.get("status");
-        String location = (String) payload.get("dest_city");
-        String description = (String) payload.get("remarks");
-
-        processStatusUpdate(trackingId, statusCode, location, description);
-
-        return GenericResponse.success("OK");
+        log.warn("SAMPLE / MOCK ONLY: DTDC webhook placeholder invoked; payload was not processed.");
+        return GenericResponse.failure(
+                "NOT_IMPLEMENTED",
+                "SAMPLE / MOCK ONLY: DTDC webhook placeholder; no payload was processed and no DTDC systems are accessed.");
     }
     /**
      * Process status update from any provider.

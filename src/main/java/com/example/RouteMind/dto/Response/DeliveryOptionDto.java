@@ -1,6 +1,7 @@
 package com.example.RouteMind.dto.Response;
 
 import com.example.RouteMind.enums.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import java.math.BigDecimal;
 import java.util.List;
@@ -15,7 +16,7 @@ import java.util.List;
 
 public class DeliveryOptionDto {
 
-    // Provider (BLUEDART, FEDEX, DTDC)
+    // Provider (BLUEDART, FEDEX, or DTDC sample/mock placeholder)
     private ProviderCode provider;
 
     // Provider display name
@@ -39,4 +40,8 @@ public class DeliveryOptionDto {
 
     // Tags for UI display (FASTEST, CHEAPEST, RECOMMENDED)
     private List<ProviderTag> tags;
+
+    // Present when provider data is illustrative rather than operational.
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String dataNotice;
 }

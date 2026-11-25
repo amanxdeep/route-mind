@@ -21,7 +21,7 @@ public class DeliveryProvider {
 
     @Enumerated(EnumType.STRING)
     @Column(unique = true)
-    private ProviderCode code;           // BLUEDART, FEDEX, DTDC
+    private ProviderCode code;           // BLUEDART, FEDEX, or DTDC sample/mock placeholder
 
     private String name;                  // "Blue Dart Express"
     private String baseUrl;               // Url link to provider's API

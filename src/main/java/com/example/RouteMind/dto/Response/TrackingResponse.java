@@ -2,6 +2,7 @@ package com.example.RouteMind.dto.Response;
 
 import com.example.RouteMind.enums.DeliveryStatus;
 import com.example.RouteMind.enums.ProviderCode;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -43,5 +44,9 @@ public class TrackingResponse {
 
     // Full tracking history
     private List<TrackingEventDto> events;
+
+    // Present when tracking data is illustrative rather than operational.
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String dataNotice;
 
 }

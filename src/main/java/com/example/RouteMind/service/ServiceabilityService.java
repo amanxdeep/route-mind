@@ -110,6 +110,9 @@ public class ServiceabilityService {
                 .etaDaysMax(etaDaysMax)
                 .codAvailable(service.getIsCodAvailable())
                 .tags(new ArrayList<>())
+                .dataNotice(service.getProviderCode() == ProviderCode.DTDC
+                        ? "SAMPLE / MOCK DATA: Illustrative DTDC rate and availability only; no DTDC systems were accessed."
+                        : null)
                 .build();
     }
     /**

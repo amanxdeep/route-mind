@@ -9,7 +9,7 @@ public enum ProviderCode {
 
     BLUEDART("Bluedart", "BD"),
     FEDEX("FedEx", "FX"),
-    DTDC("DTDC", "DC");
+    DTDC("DTDC", "DC"); // Illustrative sample/mock provider only
 
     private final String displayName;
     private final String shortCode;

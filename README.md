@@ -2,19 +2,25 @@
 
 ## Overview
 
-RouteMind is an intermediate delivery integration microservice designed for e-commerce web applications. It provides a unified API to interact with multiple delivery providers (BlueDart, DTDC, FedEx), enabling seamless order creation, tracking, serviceability checks, and cost estimation. This service acts as a middleware layer, abstracting the complexities of different provider APIs and offering a consistent interface for e-commerce platforms.
+RouteMind is an educational delivery workflow microservice designed for e-commerce web applications. It provides a unified API for provider selection, order workflows, tracking, serviceability checks, and cost estimation. The project includes a generic provider architecture, with DTDC present only as an illustrative sample/mock placeholder.
 
 As a computer science graduate seeking an internship, this project demonstrates proficiency in Java, Spring Boot, microservices architecture, API integration, database management, and software design patterns.
+
+## DTDC disclaimer
+
+> RouteMind is an independent educational project and is not affiliated with, endorsed by, sponsored by, or officially connected to DTDC Express Limited. DTDC is referenced solely as an illustrative example of a courier provider. All DTDC-related functionality in this project is simulated and uses sample data only. No actual DTDC services are accessed.
+
+The DTDC adapter returns clearly marked sample values only; its serviceability and cancellation operations are not implemented. The DTDC webhook endpoint is a non-functional HTTP 501 placeholder and does not process payloads. No DTDC network requests are made.
 
 ## ✨ Features
 
 ### Core Functionality
 - **📦 Order Management**: Create and retrieve orders with external order IDs for integration with e-commerce platforms.
-- **📍 Shipment Tracking**: Real-time tracking of shipments across multiple providers with historical event logging.
+- **📍 Shipment Tracking**: Track provider shipments with historical event logging.
 - **🔍 Serviceability Checks**: Verify if delivery is possible between pickup and delivery locations, providing available options.
 - **💰 Cost Estimation**: Calculate shipping costs based on weight, distance, service type, and COD charges using provider rate cards.
-- **🏢 Multi-Provider Support**: Integrated adapters for BlueDart, DTDC, and FedEx with extensible architecture for additional providers.
-- **🔗 Webhook Integration**: Receive real-time status updates from providers via webhooks and update internal tracking events.
+- **🏢 Multi-Provider Support**: Extensible provider architecture, including an illustrative DTDC sample/mock adapter that does not access DTDC systems.
+- **🔗 Webhook Integration**: Receive provider status updates via webhooks; the DTDC endpoint is an inert HTTP 501 placeholder and does not process payloads.
 
 ### Technical Features
 - **🌐 RESTful API**: Well-structured REST endpoints with consistent response formats.
@@ -103,7 +109,7 @@ src/
 │   │       │   ├── DeliveryProviderAdapter.java  # Interface for provider adapters
 │   │       │   └── implementation/                # Concrete adapter implementations
 │   │       │       ├── BlueDartAdapter.java
-│   │       │       ├── DtdcAdapter.java
+│   │       │       ├── DtdcAdapter.java             # SAMPLE / MOCK placeholder only
 │   │       │       └── FedexAdapter.java
 │   │       ├── client/                            # External API clients
 │   │       │   └── fedex/
@@ -217,13 +223,12 @@ graph TB
     subgraph Adapters["Adapter Pattern Layer"]
         AdapterInterface["DeliveryProviderAdapter<br/>Interface"]
         BlueDartImpl["BlueDartAdapter"]
-        DtdcImpl["DtdcAdapter"]
+        DtdcImpl["DtdcAdapter<br/>SAMPLE / MOCK ONLY"]
         FedexImpl["FedexAdapter"]
     end
     
     subgraph ExternalAPIs["External APIs"]
         BlueDartAPI["BlueDart API"]
-        DtdcAPI["DTDC API"]
         FedexAPI["FedEx API"]
     end
     
@@ -251,7 +256,6 @@ graph TB
     AdapterInterface --> FedexImpl
     
     BlueDartImpl --> BlueDartAPI
-    DtdcImpl --> DtdcAPI
     FedexImpl --> FedexAPI
     
     OrderSvc --> DataAccessSvc
@@ -272,7 +276,7 @@ graph TB
         
         subgraph Implementations["Concrete Implementations"]
             BlueDart["BlueDartAdapter<br/>---<br/>+ getProviderCode()<br/>+ checkServiceability()<br/>+ calculateRate()<br/>+ createShipment()<br/>+ trackShipment()"]
-            Dtdc["DtdcAdapter<br/>---<br/>+ getProviderCode()<br/>+ checkServiceability()<br/>+ calculateRate()<br/>+ createShipment()<br/>+ trackShipment()"]
+            Dtdc["DtdcAdapter<br/>SAMPLE / MOCK ONLY<br/>No external calls"]
             Fedex["FedexAdapter<br/>---<br/>+ getProviderCode()<br/>+ checkServiceability()<br/>+ calculateRate()<br/>+ createShipment()<br/>+ trackShipment()"]
         end
     end
@@ -288,7 +292,6 @@ graph TB
     AdapterInterface -->|implements| Fedex
     
     BlueDart -.->|calls| BlueDartAPI["BlueDart API"]
-    Dtdc -.->|calls| DtdcAPI["DTDC API"]
     Fedex -.->|calls| FedexAPI["FedEx API"]
 ```
 
@@ -334,7 +337,7 @@ graph TB
 ### Webhooks
 - `POST /api/v1/webhooks/bluedart` - Receive BlueDart status updates
 - `POST /api/v1/webhooks/delhivery` - Receive Delhivery status updates
-- `POST /api/v1/webhooks/dtdc` - Receive DTDC status updates
+- `POST /api/v1/webhooks/dtdc` - DTDC sample/mock placeholder; returns HTTP 501 and does not process the payload
 - `POST /api/v1/webhooks/fedex` - Receive FedEx status updates
 
 ### API Endpoints Overview Diagram
@@ -432,7 +435,7 @@ The application includes Spring Boot Actuator for monitoring:
 
 ## 🔮 Future Enhancements
 
-- Complete implementation of BlueDart and DTDC API integrations
+- Complete provider integrations where authorized and appropriate
 - Add more delivery providers
 - Implement rate limiting and circuit breakers
 - Add comprehensive unit and integration tests
